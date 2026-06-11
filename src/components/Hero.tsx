@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, ArrowRight } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
@@ -48,11 +48,54 @@ const DOCS = [
   },
 ];
 
+interface DocumentCardProps {
+  doc: typeof DOCS[0];
+  index: number;
+  scrollYProgress: MotionValue<number>;
+  mousePos: { x: number; y: number };
+}
+
+function DocumentCard({ doc, index, scrollYProgress, mousePos }: DocumentCardProps) {
+  const x = useTransform(scrollYProgress, [0, 1], [doc.startPos.x, doc.endPos.x]);
+  const y = useTransform(scrollYProgress, [0, 1], [doc.startPos.y, doc.endPos.y]);
+  const rotate = useTransform(scrollYProgress, [0, 1], [doc.rotate, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.8, 1], [1, 1.05, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
+
+  return (
+    <motion.div
+      style={{
+        x,
+        y,
+        rotate,
+        scale,
+        opacity,
+        zIndex: doc.stackZ,
+        position: 'absolute',
+      }}
+      className={`w-36 h-48 ${doc.bg} border border-zinc-200/50 rounded-2xl shadow-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm hidden lg:flex`}
+    >
+      <motion.div
+        animate={{ 
+          x: mousePos.x * (index + 1) * 0.1,
+          y: mousePos.y * (index + 1) * 0.1
+        }}
+        transition={{ type: "spring", stiffness: 100, damping: 30 }}
+        className="flex flex-col items-center gap-3"
+      >
+        <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-zinc-100">
+          <FileText className={`w-7 h-7 ${doc.color}`} />
+        </div>
+        <span className={`text-[10px] font-bold ${doc.color} opacity-60 tracking-widest uppercase`}>{doc.type}</span>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   
-  // Track scroll progress of the hero section
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end center"]
@@ -62,7 +105,6 @@ export function Hero() {
     setMounted(true);
   }, []);
 
-  // Parallax based on mouse
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -81,9 +123,7 @@ export function Hero() {
 
   return (
     <section ref={containerRef} className="relative min-h-[150vh] bg-white">
-      {/* Sticky Content Container */}
       <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
-        {/* Soft Background Pulse */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.03)_0%,transparent_50%)]" />
         
         <div className="container mx-auto px-6 relative z-10 text-center">
@@ -132,47 +172,16 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Scroll-Linked Document Cards */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          {DOCS.map((doc, i) => {
-            // Calculate current X and Y based on scroll progress
-            const x = useTransform(scrollYProgress, [0, 1], [doc.startPos.x, doc.endPos.x]);
-            const y = useTransform(scrollYProgress, [0, 1], [doc.startPos.y, doc.endPos.y]);
-            const rotate = useTransform(scrollYProgress, [0, 1], [doc.rotate, 0]);
-            const scale = useTransform(scrollYProgress, [0, 0.8, 1], [1, 1.05, 1]);
-            const opacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
-
-            return (
-              <motion.div
-                key={doc.id}
-                style={{
-                  x,
-                  y,
-                  rotate,
-                  scale,
-                  opacity,
-                  zIndex: doc.stackZ,
-                  position: 'absolute',
-                }}
-                className={`w-36 h-48 ${doc.bg} border border-zinc-200/50 rounded-2xl shadow-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm hidden lg:flex`}
-              >
-                {/* Parallax Layer - reacts to mouse movement */}
-                <motion.div
-                  animate={{ 
-                    x: mousePos.x * (i + 1) * 0.1,
-                    y: mousePos.y * (i + 1) * 0.1
-                  }}
-                  transition={{ type: "spring", stiffness: 100, damping: 30 }}
-                  className="flex flex-col items-center gap-3"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-zinc-100">
-                    <FileText className={`w-7 h-7 ${doc.color}`} />
-                  </div>
-                  <span className={`text-[10px] font-bold ${doc.color} opacity-60 tracking-widest uppercase`}>{doc.type}</span>
-                </motion.div>
-              </motion.div>
-            );
-          })}
+          {DOCS.map((doc, i) => (
+            <DocumentCard 
+              key={doc.id} 
+              doc={doc} 
+              index={i} 
+              scrollYProgress={scrollYProgress} 
+              mousePos={mousePos} 
+            />
+          ))}
         </div>
       </div>
     </section>
