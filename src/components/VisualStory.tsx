@@ -21,8 +21,12 @@ export function VisualStory() {
   });
 
   const [chatAnswer, setChatAnswer] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+  const [particles, setParticles] = useState<{x: number, y: number, duration: number, delay: number}[]>([]);
+
   const fullAnswer = "Based on the internal quarterly audit, revenue growth is up by 18.4% year-over-year. The primary drivers are the expansion into the APAC market and a 12% increase in retention among enterprise tier customers. Operational costs have stabilized since Q2.";
 
+  // Phases:
   // Phase 1: Orbit (0 - 0.25)
   // Phase 2: Absorption (0.25 - 0.4)
   // Phase 3: Core Expansion & Open (0.4 - 0.6)
@@ -44,6 +48,16 @@ export function VisualStory() {
 
   const dashboardOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
   const dashboardY = useTransform(scrollYProgress, [0.85, 1], [50, 0]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setParticles([...Array(30)].map(() => ({
+      x: Math.random() * 2000,
+      y: Math.random() * 2000,
+      duration: Math.random() * 10 + 10,
+      delay: Math.random() * 10
+    })));
+  }, []);
 
   // Typing effect trigger
   useEffect(() => {
@@ -74,19 +88,19 @@ export function VisualStory() {
         
         {/* Animated Particles */}
         <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
+          {isMounted && particles.map((p, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-white/20 rounded-full"
-              initial={{ x: Math.random() * 2000, y: Math.random() * 2000 }}
+              initial={{ x: p.x, y: p.y }}
               animate={{
                 y: [null, -1000],
                 opacity: [0, 1, 0]
               }}
               transition={{
-                duration: Math.random() * 10 + 10,
+                duration: p.duration,
                 repeat: Infinity,
-                delay: Math.random() * 10
+                delay: p.delay
               }}
             />
           ))}
