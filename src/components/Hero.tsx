@@ -1,9 +1,8 @@
 'use client';
 
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, Play, Sparkles, Brain } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
 
 const FLOATING_DOCS = [
   { id: 1, type: 'PDF', color: 'text-red-500', bg: 'bg-red-50', x: -140, y: -100, delay: 0 },
@@ -13,26 +12,8 @@ const FLOATING_DOCS = [
 ];
 
 export function Hero() {
-  const [mounted, setMounted] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    setMounted(true);
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 40;
-      const y = (e.clientY / window.innerHeight - 0.5) * 40;
-      setMousePos({ x, y });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  if (!mounted) return null;
-
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden premium-gradient-bg">
+    <section className="relative pt-32 pb-20 overflow-hidden bg-white">
       <div className="container mx-auto px-4">
         <div className="flex flex-col lg:flex-row items-center gap-16">
           {/* Left Side: Text Content */}
@@ -42,30 +23,25 @@ export function Hero() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="flex-1 space-y-8 text-center lg:text-left"
           >
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-xs font-bold tracking-wide uppercase"
-            >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-primary text-xs font-bold tracking-wide uppercase">
               <Sparkles className="w-3.5 h-3.5" />
               <span>New: Support for large CSV datasets</span>
-            </motion.div>
+            </div>
             
-            <h1 className="text-6xl lg:text-8xl font-headline font-bold leading-[1] text-slate-900 tracking-tight">
+            <h1 className="text-6xl lg:text-7xl font-headline font-bold leading-[1.1] text-slate-900 tracking-tight">
               Chat With Your <br />
               <span className="text-primary italic">Documents</span>
             </h1>
             
             <p className="text-xl text-slate-500 max-w-xl leading-relaxed font-medium">
-              Upload PDFs, DOCX, and PPTs to get instant, accurate answers from your own knowledge base in seconds.
+              Upload PDFs, DOCX, and PPTs and get instant, accurate answers from your own knowledge base in seconds.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-              <Button size="lg" className="rounded-full px-10 h-16 text-lg font-bold bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/30 hover:scale-105 transition-all">
+              <Button size="lg" className="rounded-full px-10 h-16 text-lg font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
                 Start Chatting Free
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg font-semibold gap-2 border-slate-200 hover:bg-slate-50 transition-all">
+              <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg font-semibold gap-2 border-slate-200 hover:bg-slate-50">
                 <Play className="w-4 h-4 fill-current" />
                 Watch Demo
               </Button>
@@ -81,33 +57,16 @@ export function Hero() {
             </div>
           </motion.div>
 
-          {/* Right Side: Animated Visual */}
-          <div className="flex-1 relative w-full max-w-[600px] h-[600px] flex items-center justify-center">
-            {/* Background Glow */}
-            <motion.div 
-              animate={{ 
-                x: mousePos.x * -0.5,
-                y: mousePos.y * -0.5,
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ scale: { duration: 8, repeat: Infinity } }}
-              className="absolute w-[450px] h-[450px] bg-primary/10 blur-[100px] rounded-full"
-            />
-
+          {/* Right Side: Simple Animated Visual */}
+          <div className="flex-1 relative w-full max-w-[500px] h-[500px] flex items-center justify-center">
             {/* AI Core Box */}
             <motion.div
-              style={{
-                x: mousePos.x,
-                y: mousePos.y,
-                rotateY: mousePos.x * 0.5,
-                rotateX: mousePos.y * -0.5,
-              }}
-              className="relative z-10 w-56 h-56 glass-morphism rounded-[3rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] flex items-center justify-center border border-white/50"
+              animate={{ y: [0, -20, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="relative z-10 w-48 h-48 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border border-slate-100"
             >
-              <div className="absolute inset-0 bg-primary/5 rounded-[3rem] animate-pulse" />
-              <div className="w-24 h-24 bg-primary rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary/40 relative overflow-hidden group">
-                <Brain className="w-12 h-12 text-white relative z-10 group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
+                <Brain className="w-10 h-10 text-white" />
               </div>
             </motion.div>
 
@@ -115,29 +74,24 @@ export function Hero() {
             {FLOATING_DOCS.map((doc) => (
               <motion.div
                 key={doc.id}
-                style={{
-                  x: doc.x + mousePos.x * 2,
-                  y: doc.y + mousePos.y * 2,
-                }}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ 
                   opacity: 1,
                   scale: 1,
-                  y: [doc.y, doc.y - 15, doc.y],
-                  rotate: [-5, 5, -5]
+                  x: doc.x,
+                  y: doc.y + (Math.sin(Date.now() / 1000 + doc.id) * 10),
                 }}
                 transition={{ 
                   opacity: { delay: doc.delay, duration: 0.5 },
-                  y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: doc.delay },
-                  rotate: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: doc.delay }
+                  y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
                 }}
-                className={`absolute w-16 h-20 ${doc.bg} rounded-2xl border border-white shadow-xl flex flex-col p-2.5 backdrop-blur-sm group hover:scale-110 transition-transform`}
+                className={`absolute w-14 h-18 ${doc.bg} rounded-xl border border-white shadow-lg flex flex-col p-2 backdrop-blur-sm`}
               >
-                <div className={`h-1.5 w-10 rounded-full ${doc.color.replace('text', 'bg')} opacity-20 mb-2`} />
+                <div className={`h-1 w-8 rounded-full ${doc.color.replace('text', 'bg')} opacity-20 mb-1.5`} />
                 <div className="flex-1 flex items-center justify-center">
-                  <FileText className={`w-8 h-8 ${doc.color}`} />
+                  <FileText className={`w-6 h-6 ${doc.color}`} />
                 </div>
-                <span className={`text-[8px] font-bold ${doc.color} text-center mt-1 opacity-60`}>{doc.type}</span>
+                <span className={`text-[7px] font-bold ${doc.color} text-center mt-1 opacity-60`}>{doc.type}</span>
               </motion.div>
             ))}
           </div>
