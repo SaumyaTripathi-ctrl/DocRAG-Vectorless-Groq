@@ -14,13 +14,8 @@ export function ChatLayout() {
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
-  // "Flowing icons" that appear just before the chat starts
-  const [showFlowingIcons, setShowFlowingIcons] = useState(false);
-
   useEffect(() => {
     if (isInView) {
-      setShowFlowingIcons(true);
-      // Brief delay to suggest "processing" from previous section
       const timer = setTimeout(() => {
         setIsTyping(true);
         let i = 0;
@@ -34,30 +29,13 @@ export function ChatLayout() {
           }
         }, 30);
         return () => clearInterval(interval);
-      }, 1000);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isInView]);
 
   return (
     <section ref={containerRef} className="py-32 bg-white overflow-hidden relative">
-      {/* Flowing Icons Transition Layer */}
-      {showFlowingIcons && !isTyping && typedText === "" && (
-        <div className="absolute inset-x-0 top-0 h-40 flex justify-center gap-12 pointer-events-none z-0">
-          {[1, 2, 3].map((id) => (
-            <motion.div
-              key={id}
-              initial={{ y: -100, opacity: 0, scale: 0.5 }}
-              animate={{ y: 200, opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, delay: id * 0.2, ease: "easeInOut" }}
-              className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center"
-            >
-              <FileText className="w-5 h-5 text-indigo-500" />
-            </motion.div>
-          ))}
-        </div>
-      )}
-
       <div className="container mx-auto px-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -84,16 +62,13 @@ export function ChatLayout() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {['Annual_Report.pdf', 'Research_Paper.docx', 'Meeting_Notes.txt'].map((doc, i) => (
-                <motion.div 
+                <div 
                   key={i} 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.5 + (i * 0.1) }}
                   className={`flex items-center gap-3 p-4 rounded-2xl text-xs transition-all ${i === 0 ? 'bg-white border border-zinc-100 text-zinc-900 font-bold shadow-sm' : 'text-zinc-500'}`}
                 >
                   <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-300'}`} />
                   <span className="truncate">{doc}</span>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -104,8 +79,8 @@ export function ChatLayout() {
               <div className="flex justify-end">
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
-                  animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 1 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
                   className="bg-zinc-900 text-white p-5 rounded-[1.5rem] rounded-tr-sm text-sm max-w-[80%] font-medium shadow-xl"
                 >
                   What was the growth in Q3?
@@ -117,7 +92,7 @@ export function ChatLayout() {
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 1.5 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
                     className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
                   >
                     <Sparkles className="w-5 h-5 text-white" />
@@ -156,31 +131,6 @@ export function ChatLayout() {
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* Citations Panel */}
-          <div className="w-80 border-l border-zinc-100 bg-zinc-50/30 flex flex-col hidden xl:flex">
-            <div className="p-6 border-b border-zinc-100 flex items-center gap-2">
-              <Database className="w-3.5 h-3.5 text-indigo-600" />
-              <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Citations</h3>
-            </div>
-            <div className="flex-1 p-6 space-y-4">
-              {[14, 21, 28].map((page, i) => (
-                <motion.div 
-                  key={page}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={showCitations ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: i * 0.15 + 0.3 }}
-                  className={`p-4 bg-white border rounded-2xl shadow-sm space-y-2 group transition-all ${i === 0 && showCitations ? 'border-indigo-500 ring-2 ring-indigo-50' : 'border-zinc-100'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold text-indigo-600 uppercase">Page {page}</span>
-                    <Database className="w-3 h-3 text-zinc-300 group-hover:text-indigo-500 transition-colors" />
-                  </div>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">"...revenue increase driven by enterprise growth and subscription metrics..."</p>
-                </motion.div>
-              ))}
             </div>
           </div>
         </motion.div>

@@ -14,19 +14,17 @@ export default function Home() {
       <Navigation />
       
       <main className="relative">
-        {/* Section 1: Hero */}
+        {/* Step 1: Documents & Intro */}
         <Hero />
         
-        {/* Section 2: Upload Documents */}
+        {/* Step 2: Upload Action */}
         <UploadSection />
         
-        {/* Section 3: Chat with Agent */}
+        {/* Step 3: Product Showcase */}
         <ChatLayout />
         
-        {/* Section 4: Benefits */}
+        {/* Final Context */}
         <Benefits />
-        
-        {/* Section 5: CTA */}
         <FinalCTA />
       </main>
 
