@@ -61,7 +61,6 @@
   }
 }
 
-/* Custom Scrollbar for Chat */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -74,4 +73,23 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+@keyframes gradient-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient {
+  background-size: 200% 200%;
+  animation: gradient-move 8s ease infinite;
 }
