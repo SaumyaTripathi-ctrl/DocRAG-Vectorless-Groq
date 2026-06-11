@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { FileText, ChevronRight, Layout, Database, Sparkles } from 'lucide-react';
+import { FileText, ChevronRight, Layout, Database, Sparkles, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
 
@@ -35,7 +35,9 @@ export function ChatLayout() {
   }, [isInView]);
 
   return (
-    <section ref={containerRef} className="py-32 bg-white overflow-hidden relative">
+    <section ref={containerRef} className="py-32 bg-zinc-50/30 overflow-hidden relative">
+      <div className="floating-blob bottom-0 right-0 opacity-30" />
+      
       <div className="container mx-auto px-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -44,7 +46,10 @@ export function ChatLayout() {
           transition={{ duration: 0.8 }}
           className="text-center mb-16 max-w-2xl mx-auto"
         >
-          <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight lg:text-4xl">Extract Intelligence Instantly</h2>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold tracking-widest uppercase mb-6">
+            Product Showcase
+          </div>
+          <h2 className="text-4xl font-headline font-bold text-zinc-900 tracking-tight lg:text-5xl">Extract Intelligence Instantly</h2>
           <p className="text-lg font-medium text-zinc-500 mt-4 leading-relaxed">The agent understands your files and answers with verifiable, real-time citations.</p>
         </motion.div>
 
@@ -56,12 +61,17 @@ export function ChatLayout() {
           className="max-w-6xl mx-auto h-[700px] border border-zinc-200 rounded-[3rem] bg-white flex shadow-2xl shadow-zinc-200/80 overflow-hidden relative group"
         >
           {/* Sidebar */}
-          <div className="w-72 border-r border-zinc-100 bg-zinc-50/50 flex flex-col hidden lg:flex">
-            <div className="p-8 border-b border-zinc-100 flex items-center gap-3">
-              <div className="bg-indigo-100 p-1.5 rounded-lg">
-                <Layout className="w-3.5 h-3.5 text-indigo-600" />
+          <div className="w-72 border-r border-zinc-100 bg-zinc-50/80 backdrop-blur-md flex flex-col hidden lg:flex">
+            <div className="p-8 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-600 p-1.5 rounded-lg">
+                  <Layout className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Knowledge</h3>
               </div>
-              <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Source Files</h3>
+              <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md">
+                <Plus className="w-3 h-3" />
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-2.5">
               {['Annual_Report.pdf', 'Research_Paper.docx', 'Meeting_Notes.txt'].map((doc, i) => (
@@ -72,8 +82,13 @@ export function ChatLayout() {
                   transition={{ delay: 0.5 + (i * 0.1) }}
                   className={`flex items-center gap-3 p-4 rounded-2xl text-xs transition-all duration-300 ${i === 0 ? 'bg-white border border-zinc-200 text-zinc-900 font-bold shadow-md shadow-zinc-100' : 'text-zinc-500 hover:bg-white/50'}`}
                 >
-                  <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-300'}`} />
-                  <span className="truncate">{doc}</span>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${i === 0 ? 'bg-red-50' : 'bg-zinc-100'}`}>
+                    <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-400'}`} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="truncate">{doc}</span>
+                    <span className="text-[9px] text-zinc-400 font-medium">Updated 2h ago</span>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -104,7 +119,7 @@ export function ChatLayout() {
                   >
                     <Sparkles className="w-6 h-6 text-white" />
                   </motion.div>
-                  <div className="bg-zinc-50 border border-zinc-100 p-8 lg:p-10 rounded-[2rem] rounded-tl-sm text-sm max-w-[90%] leading-relaxed text-zinc-600 shadow-sm">
+                  <div className="bg-zinc-50/50 border border-zinc-100 p-8 lg:p-10 rounded-[3rem] rounded-tl-sm text-sm max-w-[90%] leading-relaxed text-zinc-600 shadow-sm backdrop-blur-sm">
                     <div className="text-[10px] font-bold text-indigo-600 mb-4 uppercase tracking-[0.25em]">AI Agent Response</div>
                     <div className="min-h-[1.5em] relative text-base font-medium text-zinc-800">
                       {typedText}

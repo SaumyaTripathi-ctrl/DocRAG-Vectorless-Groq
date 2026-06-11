@@ -41,10 +41,10 @@
 .bg-mesh {
   background-color: #ffffff;
   background-image: 
-    radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(210, 100%, 50%, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(262, 83%, 58%, 0.05) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, hsla(210, 100%, 50%, 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(210, 100%, 50%, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(262, 83%, 58%, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(210, 100%, 50%, 0.08) 0px, transparent 50%);
   background-size: 200% 200%;
   animation: mesh-move 15s ease infinite;
 }
@@ -52,6 +52,20 @@
 @keyframes mesh-move {
   0%, 100% { background-position: 0% 0%; }
   50% { background-position: 100% 100%; }
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+}
+
+.floating-blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, hsla(262, 83%, 58%, 0.15) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

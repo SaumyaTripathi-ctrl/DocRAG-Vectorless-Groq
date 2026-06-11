@@ -27,7 +27,10 @@ export function Navigation() {
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-500">
           <Link href="#" className="hover:text-zinc-900 transition-colors duration-200">Product</Link>
-          <Link href="#" className="hover:text-zinc-900 transition-colors duration-200">Pricing</Link>
+          <div className="relative group">
+            <Link href="#pricing" className="hover:text-zinc-900 transition-colors duration-200">Pricing</Link>
+            <span className="absolute -top-3 -right-6 bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1.5 py-0.5 rounded-full scale-0 group-hover:scale-100 transition-transform">NEW</span>
+          </div>
           <Link href="#" className="hover:text-zinc-900 transition-colors duration-200">Security</Link>
         </nav>
 
