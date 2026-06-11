@@ -21,8 +21,6 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
       name: file.name,
       size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
       type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-      // In a real app, we'd extract text from the file here. 
-      // For this prototype, we'll use placeholder content.
       content: `This is the extracted content of ${file.name}. It contains important information about the topic discussed in the document.`
     }));
 

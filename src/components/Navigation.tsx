@@ -3,17 +3,22 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FileText, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 export function Navigation() {
+  const { scrollY } = useScroll();
+  const height = useTransform(scrollY, [0, 50], [80, 64]);
+  const backgroundColor = useTransform(scrollY, [0, 50], ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.8)"]);
+
   return (
     <motion.header 
+      style={{ height, backgroundColor }}
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-zinc-200/50"
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b border-transparent data-[scrolled=true]:border-zinc-200/50"
     >
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-6 h-full flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
           <motion.div 
             whileHover={{ scale: 1.05, rotate: -5 }}
