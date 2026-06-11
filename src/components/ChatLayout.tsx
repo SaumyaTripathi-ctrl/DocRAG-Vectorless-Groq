@@ -1,31 +1,35 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import { MessageSquare, FileText, ChevronRight, Search, Layout, Database, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const AI_RESPONSE = "Revenue grew by 23% in Q3, primarily driven by new enterprise subscriptions and an optimized SaaS delivery model. Operating expenses remained stable.";
 
 export function ChatLayout() {
   const [typedText, setTypedText] = useState("");
   const [showCitations, setShowCitations] = useState(false);
+  const containerRef = useRef(null);
+  const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      setTypedText(AI_RESPONSE.slice(0, i));
-      i++;
-      if (i > AI_RESPONSE.length) {
-        clearInterval(interval);
-        setTimeout(() => setShowCitations(true), 500);
-      }
-    }, 20);
-    return () => clearInterval(interval);
-  }, []);
+    if (isInView) {
+      let i = 0;
+      const interval = setInterval(() => {
+        setTypedText(AI_RESPONSE.slice(0, i));
+        i++;
+        if (i > AI_RESPONSE.length) {
+          clearInterval(interval);
+          setTimeout(() => setShowCitations(true), 500);
+        }
+      }, 20);
+      return () => clearInterval(interval);
+    }
+  }, [isInView]);
 
   return (
-    <section className="py-32 bg-white overflow-hidden">
+    <section ref={containerRef} className="py-32 bg-white overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[10px] font-bold tracking-wider uppercase mb-4">
@@ -37,8 +41,8 @@ export function ChatLayout() {
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.98 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.98, y: 40 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
           className="max-w-6xl mx-auto h-[700px] border border-zinc-200 rounded-[2.5rem] bg-white flex shadow-2xl overflow-hidden relative"
         >
@@ -50,13 +54,16 @@ export function ChatLayout() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {['Annual_Report.pdf', 'Research_Paper.docx', 'Meeting_Notes.txt'].map((doc, i) => (
-                <div 
+                <motion.div 
                   key={i} 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ delay: i * 0.1 }}
                   className={`flex items-center gap-3 p-4 rounded-2xl text-xs transition-all ${i === 0 ? 'bg-white border border-zinc-100 text-zinc-900 font-bold shadow-sm' : 'text-zinc-500'}`}
                 >
                   <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-300'}`} />
                   <span className="truncate">{doc}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -67,34 +74,41 @@ export function ChatLayout() {
               <div className="flex justify-end">
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ delay: 0.5 }}
                   className="bg-zinc-900 text-white p-5 rounded-[1.5rem] rounded-tr-sm text-sm max-w-[80%] font-medium shadow-xl"
                 >
                   What was the growth in Q3?
                 </motion.div>
               </div>
 
-              <div className="flex justify-start gap-4">
-                <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100">
-                  <Sparkles className="w-5 h-5 text-white" />
+              {isInView && (
+                <div className="flex justify-start gap-4">
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100"
+                  >
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </motion.div>
+                  <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-[1.5rem] rounded-tl-sm text-sm max-w-[90%] leading-relaxed text-zinc-600">
+                    <div className="text-[10px] font-bold text-indigo-600 mb-2 uppercase tracking-widest">AI Agent</div>
+                    <p className="min-h-[1.5em]">{typedText}</p>
+                    
+                    {showCitations && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 flex flex-wrap gap-2"
+                      >
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-indigo-100 cursor-pointer hover:bg-indigo-100 transition-colors">
+                          <Database className="w-2.5 h-2.5" /> Source: Page 14
+                        </span>
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
-                <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-[1.5rem] rounded-tl-sm text-sm max-w-[90%] leading-relaxed text-zinc-600">
-                  <div className="text-[10px] font-bold text-indigo-600 mb-2 uppercase tracking-widest">AI Agent</div>
-                  <p className="min-h-[1.5em]">{typedText}</p>
-                  
-                  {showCitations && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 flex flex-wrap gap-2"
-                    >
-                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-indigo-100 cursor-pointer hover:bg-indigo-100 transition-colors">
-                        <Database className="w-2.5 h-2.5" /> Source: Page 14
-                      </span>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="p-8 pt-0">
@@ -121,7 +135,7 @@ export function ChatLayout() {
                   key={page}
                   initial={{ opacity: 0, y: 10 }}
                   animate={showCitations ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: i * 0.1 }}
+                  transition={{ delay: i * 0.15 }}
                   className={`p-4 bg-white border rounded-2xl shadow-sm space-y-2 group cursor-pointer transition-all ${i === 0 && showCitations ? 'border-indigo-500 ring-2 ring-indigo-50' : 'border-zinc-100 hover:border-indigo-300'}`}
                 >
                   <div className="flex items-center justify-between">

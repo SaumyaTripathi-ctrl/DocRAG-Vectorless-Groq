@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Upload, FileText, CheckCircle2, FileJson, FileBox } from 'lucide-react';
 import { useRef } from 'react';
+import { Progress } from '@/components/ui/progress';
 
 const MOCK_FILES = [
   { name: 'Annual_Report.pdf', size: '2.4 MB', icon: FileText, color: 'text-red-500' },
@@ -44,7 +45,7 @@ export function UploadSection() {
             <p className="text-sm text-zinc-400 mt-1">PDF, DOCX, PPTX up to 50MB</p>
           </div>
 
-          {/* File List */}
+          {/* File List with Progress Simulation */}
           <div className="space-y-4">
             {MOCK_FILES.map((file, i) => (
               <motion.div 
@@ -52,23 +53,49 @@ export function UploadSection() {
                 initial={{ opacity: 0, x: -10 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="flex items-center justify-between p-5 rounded-2xl border border-zinc-100 bg-white hover:bg-zinc-50 transition-all"
+                transition={{ delay: i * 0.2 }}
+                className="flex flex-col p-5 rounded-2xl border border-zinc-100 bg-white hover:bg-zinc-50 transition-all"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center">
-                    <file.icon className={`w-6 h-6 ${file.color}`} />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center">
+                      <file.icon className={`w-6 h-6 ${file.color}`} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-900">{file.name}</h4>
+                      <span className="text-[10px] font-medium text-zinc-400 tracking-widest uppercase">{file.size}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-zinc-900">{file.name}</h4>
-                    <span className="text-[10px] font-medium text-zinc-400 tracking-widest uppercase">{file.size}</span>
+                  
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: (i * 0.2) + 0.8 }}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Ready</span>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    </motion.div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Ready</span>
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                </div>
+
+                {/* Simulated Progress Bar */}
+                <motion.div
+                  initial={{ opacity: 1 }}
+                  whileInView={{ opacity: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: (i * 0.2) + 0.8, duration: 0.3 }}
+                >
+                  <motion.div
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "100%" }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: i * 0.2, ease: "easeInOut" }}
+                    className="h-1 bg-indigo-500 rounded-full"
+                  />
+                </motion.div>
               </motion.div>
             ))}
           </div>

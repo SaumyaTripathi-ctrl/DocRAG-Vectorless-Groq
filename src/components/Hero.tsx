@@ -1,8 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, ArrowRight } from 'lucide-react';
+import { useRef } from 'react';
 
 const DOCS = [
   { type: 'PDF', color: 'text-red-500', bg: 'bg-red-50', x: -40, y: -40, rotate: -12 },
@@ -11,15 +12,32 @@ const DOCS = [
 ];
 
 export function Hero() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  });
+
+  // Scroll-linked transforms to gather and stack documents
+  const gatherX = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const gatherRotate = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const gatherOpacity = useTransform(scrollYProgress, [0.8, 1], [1, 0]);
+  const gatherY = useTransform(scrollYProgress, [0, 1], [0, 200]); // Move downward
+
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-white pt-16">
+    <section ref={containerRef} className="relative min-h-[90vh] flex items-center overflow-hidden bg-white pt-16">
       {/* Background soft glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-50/50 rounded-full blur-3xl -z-10" />
 
       <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
         
         {/* Left Column: Copy */}
-        <div className="space-y-8">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          className="space-y-8"
+        >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[11px] font-bold tracking-wider uppercase">
             <span>Productivity Redefined</span>
           </div>
@@ -46,7 +64,7 @@ export function Hero() {
               <span key={f} className="text-xs font-bold text-zinc-900">{f}</span>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Column: Visual Product Stack */}
         <div className="relative h-[500px] flex items-center justify-center">
@@ -54,14 +72,14 @@ export function Hero() {
             {DOCS.map((doc, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, scale: 0.8, x: 0, y: 0, rotate: 0 }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1, 
-                  x: doc.x, 
-                  y: doc.y, 
-                  rotate: doc.rotate 
+                style={{
+                  x: useTransform(gatherX, (v) => v * doc.x),
+                  y: useTransform(gatherX, (v) => (v * doc.y) + (1 - v) * 200), // Mix existing Y with transition Y
+                  rotate: useTransform(gatherRotate, (v) => v * doc.rotate),
+                  opacity: gatherOpacity,
                 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
                 transition={{ 
                   delay: i * 0.1, 
                   duration: 0.8, 
