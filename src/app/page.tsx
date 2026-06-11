@@ -10,11 +10,14 @@ import { Footer } from '@/components/Footer';
 
 export default function Home() {
   return (
-    <div className="min-h-screen font-body selection:bg-primary/30 overflow-x-hidden bg-background">
+    <div className="min-h-screen font-body selection:bg-indigo-100 selection:text-indigo-900 bg-white">
       <Navigation />
       
-      <main className="space-y-0">
+      <main>
+        {/* The Hero component now handles the large scroll-transition Story */}
         <Hero />
+        
+        {/* Product Sections */}
         <UploadSection />
         <ChatLayout />
         <Benefits />
