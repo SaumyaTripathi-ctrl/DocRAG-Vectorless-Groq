@@ -11,6 +11,7 @@ export function FinalCTA() {
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
           className="max-w-3xl mx-auto space-y-10"
         >
           <div className="space-y-4">
@@ -23,9 +24,11 @@ export function FinalCTA() {
           </div>
 
           <div className="flex flex-col items-center gap-6">
-            <Button size="lg" className="rounded-full px-12 h-16 text-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all hover:scale-105">
-              Start Your Free Trial
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button size="lg" className="rounded-full px-12 h-16 text-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
+                Start Your Free Trial
+              </Button>
+            </motion.div>
             <p className="text-zinc-400 text-[10px] font-bold tracking-[0.2em] uppercase">No credit card required</p>
           </div>
         </motion.div>
