@@ -32,10 +32,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen font-body selection:bg-indigo-100 selection:text-indigo-900 bg-white">
+    <div className="min-h-screen font-body selection:bg-indigo-100 selection:text-indigo-900 bg-white relative">
+      {/* Persistent Professional Background Layer */}
+      <div className="fixed inset-0 bg-mesh bg-grid -z-20 pointer-events-none opacity-60" />
+      
       <Navigation />
       
-      <main className="relative">
+      <main className="relative z-10">
         <Hero />
         
         <div id="product-workspace" className="space-y-0">

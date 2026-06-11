@@ -38,6 +38,20 @@
   }
 }
 
+/* Professional Workspace Backgrounds */
+.bg-grid {
+  background-image: radial-gradient(circle, #e2e8f0 1.2px, transparent 1.2px);
+  background-size: 48px 48px;
+}
+
+.bg-mesh {
+  background-color: #ffffff;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(262, 83%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(220, 100%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(252, 83%, 98%, 1) 0, transparent 50%);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
