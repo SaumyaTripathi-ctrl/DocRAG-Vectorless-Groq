@@ -38,37 +38,6 @@
   }
 }
 
-.bg-mesh {
-  background-color: #ffffff;
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(210, 100%, 50%, 0.1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(262, 83%, 58%, 0.12) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, hsla(210, 100%, 50%, 0.1) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, hsla(280, 100%, 70%, 0.05) 0px, transparent 50%);
-  background-size: 200% 200%;
-  animation: mesh-move 20s ease infinite;
-}
-
-@keyframes mesh-move {
-  0%, 100% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-}
-
-.glass {
-  @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
-}
-
-.floating-blob {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, hsla(262, 83%, 58%, 0.1) 0%, transparent 70%);
-  filter: blur(100px);
-  z-index: -1;
-  pointer-events: none;
-}
-
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -84,19 +53,4 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #d4d4d8;
-}
-
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.cursor-blink {
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  background-color: currentColor;
-  margin-left: 2px;
-  vertical-align: middle;
-  animation: cursor-blink 1s infinite;
 }

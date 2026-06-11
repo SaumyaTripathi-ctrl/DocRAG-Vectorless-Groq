@@ -110,7 +110,7 @@ function DocumentCard({ doc, scrollYProgress }: DocumentCardProps) {
         zIndex: doc.stackZ,
         position: 'absolute',
       }}
-      className={`w-44 h-56 ${doc.bg} border border-zinc-200/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden lg:flex will-change-transform group shadow-sm animate-float`}
+      className={`w-44 h-56 ${doc.bg} border border-zinc-200/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden lg:flex will-change-transform group shadow-sm`}
     >
       <div className="w-16 h-16 rounded-[1.75rem] bg-white shadow-lg shadow-zinc-200/50 flex items-center justify-center border border-zinc-100 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
         <FileText className={`w-9 h-9 ${doc.color}`} />
@@ -128,9 +128,7 @@ export function Hero() {
   });
 
   return (
-    <section ref={containerRef} className="relative min-h-[180vh] bg-mesh overflow-visible">
-      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] pointer-events-none -z-10" />
-
+    <section ref={containerRef} className="relative min-h-[180vh] bg-white overflow-visible">
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center text-center overflow-visible">
         <motion.div 
           variants={containerVariants}
