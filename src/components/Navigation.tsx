@@ -10,7 +10,7 @@ export function Navigation() {
     <motion.header 
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b"
+      className="fixed top-0 left-0 right-0 z-[100] bg-background/50 backdrop-blur-xl border-b border-white/10"
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
@@ -20,18 +20,18 @@ export function Navigation() {
           >
             <Brain className="w-6 h-6" />
           </motion.div>
-          <span className="font-headline font-bold text-xl tracking-tight">DocuMind</span>
+          <span className="font-headline font-bold text-xl tracking-tight text-white">DocuMind</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/50">
           <Link href="#features" className="hover:text-primary transition-colors">Features</Link>
-          <Link href="#upload" className="hover:text-primary transition-colors">Upload</Link>
-          <Link href="#chat" className="hover:text-primary transition-colors">Chat</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Enterprise</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Security</Link>
         </nav>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="hidden sm:inline-flex hover:bg-primary/5">Login</Button>
-          <Button className="bg-primary hover:bg-primary/90 rounded-full px-6 shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+          <Button variant="ghost" className="hidden sm:inline-flex text-white/60 hover:text-white hover:bg-white/5">Login</Button>
+          <Button className="bg-white text-black hover:bg-slate-200 rounded-full px-6 font-bold shadow-lg shadow-white/5 transition-all hover:scale-105 active:scale-95">
             Get Started
           </Button>
         </div>
