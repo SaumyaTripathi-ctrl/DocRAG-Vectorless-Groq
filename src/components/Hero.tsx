@@ -11,7 +11,7 @@ const DOCS = [
     type: 'PDF', 
     color: 'text-red-500', 
     bg: 'bg-red-50', 
-    startPos: { x: -500, y: -300 },
+    startPos: { x: -450, y: -220 },
     rotate: -15,
     stackZ: 40,
   },
@@ -20,7 +20,7 @@ const DOCS = [
     type: 'DOCX', 
     color: 'text-blue-500', 
     bg: 'bg-blue-50', 
-    startPos: { x: 500, y: -250 },
+    startPos: { x: 450, y: -180 },
     rotate: 10,
     stackZ: 30,
   },
@@ -29,7 +29,7 @@ const DOCS = [
     type: 'PPTX', 
     color: 'text-orange-500', 
     bg: 'bg-orange-50', 
-    startPos: { x: -450, y: 250 },
+    startPos: { x: -400, y: 180 },
     rotate: -8,
     stackZ: 20,
   },
@@ -38,7 +38,7 @@ const DOCS = [
     type: 'TXT', 
     color: 'text-zinc-500', 
     bg: 'bg-zinc-50', 
-    startPos: { x: 550, y: 300 },
+    startPos: { x: 480, y: 220 },
     rotate: 12,
     stackZ: 10,
   },
@@ -85,7 +85,9 @@ function DocumentCard({ doc, scrollYProgress }: DocumentCardProps) {
   
   const rotate = useTransform(scrollYProgress, [0, 0.5], [doc.rotate, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.5, 0.6], [1, 1, 1.1]);
-  const opacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [0, 1, 1, 0]);
+  
+  // Make visible from the start (0), then fade out at the very end of travel
+  const opacity = useTransform(scrollYProgress, [0, 0.9, 1], [1, 1, 0]);
   
   const shadow = useTransform(
     scrollYProgress,
@@ -124,7 +126,7 @@ export function Hero() {
   });
 
   return (
-    <section ref={containerRef} className="relative min-h-[120vh] bg-mesh">
+    <section ref={containerRef} className="relative min-h-[120vh] bg-mesh overflow-visible">
       <div className="container mx-auto px-6 h-[80vh] flex flex-col items-center justify-center text-center relative z-10">
         <motion.div 
           variants={containerVariants}
