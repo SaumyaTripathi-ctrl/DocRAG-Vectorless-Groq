@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Database, Sparkles, Send, User, Loader2, Layout } from 'lucide-react';
+import { FileText, Database, Sparkles, Send, User, Loader2, Layout, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect } from 'react';
 import { WorkspaceDocument } from '@/app/page';
@@ -37,9 +37,12 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -81,7 +84,7 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold tracking-widest uppercase mb-6 border border-indigo-100/50 shadow-sm">
             Step 2: Converse
           </div>
-          <h2 className="text-4xl font-headline font-bold text-zinc-900 tracking-tight lg:text-5xl">Chat with your Knowledge</h2>
+          <h2 className="text-4xl font-headline font-bold text-zinc-900 tracking-tight lg:text-5xl">Chat with Knowledge</h2>
           <p className="text-lg font-medium text-zinc-500 mt-4 leading-relaxed">Ask questions across all your uploaded documents simultaneously.</p>
         </motion.div>
 
@@ -89,13 +92,13 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
           initial={{ opacity: 0, scale: 0.98, y: 40 }}
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex-1 max-w-6xl mx-auto w-full h-[750px] border border-zinc-200/60 rounded-[3rem] bg-white/80 backdrop-blur-2xl flex shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden relative group"
+          className="flex-1 max-w-6xl mx-auto w-full h-[750px] border border-zinc-200/60 rounded-[3rem] bg-white/80 backdrop-blur-2xl flex shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden relative"
         >
           {/* Sidebar - Knowledge Base */}
-          <div className="w-80 border-r border-zinc-100 bg-zinc-50/50 flex flex-col hidden lg:flex">
-            <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-white/50">
+          <div className="w-80 border-r border-zinc-100 bg-zinc-50/30 flex flex-col hidden lg:flex">
+            <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-white/50 backdrop-blur-md">
               <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
+                <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200/50">
                   <Layout className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Knowledge Base</h3>
@@ -103,11 +106,11 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
               {documents.length === 0 ? (
-                <div className="text-center py-20 px-4">
-                  <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center mx-auto mb-4 shadow-sm border border-zinc-100">
-                    <Database className="w-6 h-6 text-zinc-300" />
+                <div className="text-center py-24 px-4">
+                  <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-100">
+                    <Database className="w-7 h-7 text-zinc-200" />
                   </div>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">No active documents</p>
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em]">No active sources</p>
                 </div>
               ) : (
                 documents.map((doc, i) => {
@@ -117,15 +120,15 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
                       key={i} 
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="flex items-center gap-4 p-5 rounded-[1.75rem] text-xs bg-white border border-zinc-100 text-zinc-900 font-bold shadow-sm hover:shadow-md hover:border-indigo-100 transition-all cursor-pointer group"
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-4 p-4 rounded-[1.5rem] bg-white border border-zinc-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-500/5 transition-all cursor-pointer group"
                     >
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-sm border", colorClasses)}>
+                      <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm border shrink-0", colorClasses)}>
                         <FileText className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="truncate">{doc.name}</span>
-                        <span className="text-[10px] text-zinc-400 font-medium">{doc.size} • {doc.type}</span>
+                        <span className="text-xs font-bold text-zinc-900 truncate group-hover:text-indigo-600 transition-colors">{doc.name}</span>
+                        <span className="text-[10px] text-zinc-400 font-semibold mt-0.5">{doc.size} • {doc.type}</span>
                       </div>
                     </motion.div>
                   );
@@ -138,16 +141,21 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
           <div className="flex-1 flex flex-col bg-white/40">
             <div 
               ref={scrollRef}
-              className="flex-1 p-8 lg:p-12 overflow-y-auto space-y-10 custom-scrollbar"
+              className="flex-1 p-8 lg:p-12 overflow-y-auto space-y-10 custom-scrollbar scroll-smooth"
             >
               {messages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-60">
-                  <div className="w-20 h-20 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center shadow-inner">
-                    <Sparkles className="w-10 h-10 text-indigo-600" />
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-indigo-500/20 blur-[40px] rounded-full animate-pulse" />
+                    <div className="relative w-24 h-24 bg-gradient-to-tr from-indigo-500 to-violet-500 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-indigo-200">
+                      <Sparkles className="w-12 h-12 text-white" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-xl text-zinc-900">Agent Ready</h4>
-                    <p className="text-sm text-zinc-500 max-w-[280px]">Ask a question about your documents to begin synthesis.</p>
+                  <div className="space-y-3">
+                    <h4 className="font-bold text-2xl text-zinc-900 tracking-tight">DocuMind AI Ready</h4>
+                    <p className="text-sm text-zinc-500 max-w-[320px] font-medium leading-relaxed">
+                      Upload documents to the knowledge base and ask me anything. I can synthesize across all sources simultaneously.
+                    </p>
                   </div>
                 </div>
               )}
@@ -156,64 +164,78 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
                 {messages.map((msg, i) => (
                   <motion.div 
                     key={i}
-                    initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-5'}`}>
-                      {msg.role === 'assistant' && (
-                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-xl shadow-indigo-100 border-2 border-white">
-                          <Sparkles className="w-6 h-6 text-white" />
-                        </div>
-                      )}
+                    <div className={`flex gap-4 max-w-[90%] lg:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                       <div className={cn(
-                        "relative max-w-[85%] lg:max-w-[75%] p-6 rounded-[2.25rem] text-[15px] font-medium leading-relaxed shadow-sm",
-                        msg.role === 'user' 
-                          ? 'bg-zinc-900 text-white rounded-tr-sm shadow-zinc-200' 
-                          : 'bg-white border border-zinc-100 text-zinc-800 rounded-tl-sm'
+                        "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border-2 border-white",
+                        msg.role === 'assistant' ? "bg-indigo-600 shadow-indigo-200" : "bg-white border-zinc-100"
                       )}>
-                        {msg.content}
+                        {msg.role === 'assistant' ? (
+                          <Sparkles className="w-5 h-5 text-white" />
+                        ) : (
+                          <User className="w-5 h-5 text-zinc-400" />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <div className={cn(
+                          "relative p-6 rounded-[2rem] text-[15px] font-medium leading-relaxed shadow-sm backdrop-blur-sm",
+                          msg.role === 'user' 
+                            ? 'bg-zinc-900 text-white rounded-tr-none' 
+                            : 'bg-white/80 border border-zinc-100 text-zinc-800 rounded-tl-none'
+                        )}>
+                          {msg.content}
+                        </div>
+                        
                         {msg.sources && msg.sources.length > 0 && (
-                          <div className="mt-5 pt-5 border-t border-zinc-100 flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2 px-1">
                             {msg.sources.slice(0, 3).map((src, idx) => (
-                              <span key={idx} className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full flex items-center gap-2 border border-indigo-100/50">
-                                <Database className="w-3.5 h-3.5" /> {src}
-                              </span>
+                              <motion.div 
+                                key={idx}
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.2 + (idx * 0.1) }}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100/50 text-[10px] font-bold text-indigo-600 hover:bg-indigo-100 transition-colors cursor-help"
+                              >
+                                <BookOpen className="w-3.5 h-3.5" />
+                                {src}
+                              </motion.div>
                             ))}
                           </div>
                         )}
                       </div>
-                      {msg.role === 'user' && (
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 ml-4 border border-zinc-200 shadow-sm">
-                          <User className="w-6 h-6 text-zinc-500" />
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
               
               {isLoading && (
-                <div className="flex justify-start gap-5">
-                  <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100">
-                    <Sparkles className="w-6 h-6 text-white" />
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-4"
+                >
+                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-200 border-2 border-white">
+                    <Sparkles className="w-5 h-5 text-white" />
                   </div>
-                  <div className="bg-white border border-zinc-100 p-6 rounded-[2.25rem] rounded-tl-sm flex items-center gap-4">
+                  <div className="bg-white/80 border border-zinc-100 p-6 rounded-[2rem] rounded-tl-none flex items-center gap-4 backdrop-blur-sm">
                     <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
-                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em]">Synthesizing...</span>
+                    <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-[0.2em] animate-pulse">Synthesizing Context...</span>
                   </div>
-                </div>
+                </motion.div>
               )}
             </div>
 
             {/* Input Area */}
-            <div className="p-10 pt-0">
-              <div className="flex gap-4 bg-zinc-50 border border-zinc-200 rounded-[3rem] p-4 transition-all focus-within:ring-[6px] focus-within:ring-indigo-600/5 focus-within:border-indigo-600/30">
+            <div className="p-10 pt-0 bg-gradient-to-t from-white/80 to-transparent">
+              <div className="flex gap-4 bg-zinc-50/50 backdrop-blur-md border border-zinc-200 rounded-[3rem] p-3 transition-all focus-within:ring-[6px] focus-within:ring-indigo-600/5 focus-within:border-indigo-600/30 group shadow-lg shadow-zinc-200/20">
                 <Input 
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder={documents.length > 0 ? "Ask a question about your knowledge..." : "Upload documents to activate agent"}
+                  placeholder={documents.length > 0 ? "Ask anything about your sources..." : "Ingest documents to activate AI"}
                   disabled={documents.length === 0 || isLoading}
                   className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 px-6 h-14 text-base font-medium placeholder:text-zinc-400"
                 />
@@ -221,12 +243,16 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
                   onClick={() => handleSendMessage()}
                   disabled={documents.length === 0 || isLoading || !inputValue.trim()}
                   size="icon" 
-                  className="bg-indigo-600 hover:bg-indigo-700 w-14 h-14 rounded-[2rem] shadow-xl shadow-indigo-100 hover:shadow-indigo-200 transition-all shrink-0"
+                  className="bg-indigo-600 hover:bg-indigo-700 w-14 h-14 rounded-full shadow-xl shadow-indigo-100 hover:shadow-indigo-200 transition-all shrink-0 hover:scale-105 active:scale-95"
                 >
                   <Send className="w-6 h-6" />
                 </Button>
               </div>
-              <p className="text-center mt-5 text-[10px] font-bold text-zinc-300 uppercase tracking-[0.4em]">Proprietary Synthesis Model v1.0.4</p>
+              <div className="flex items-center justify-center gap-6 mt-6">
+                <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-[0.4em]">Gemini 1.5 Pro Enabled</p>
+                <div className="w-1 h-1 bg-zinc-200 rounded-full" />
+                <p className="text-[9px] font-bold text-zinc-300 uppercase tracking-[0.4em]">Zero Knowledge Encryption</p>
+              </div>
             </div>
           </div>
         </motion.div>
