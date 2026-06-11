@@ -13,14 +13,20 @@ export default function Home() {
     <div className="min-h-screen font-body selection:bg-indigo-100 selection:text-indigo-900 bg-white">
       <Navigation />
       
-      <main>
-        {/* The Hero component now handles the large scroll-transition Story */}
+      <main className="relative">
+        {/* Section 1: Hero */}
         <Hero />
         
-        {/* Product Sections */}
+        {/* Section 2: Upload Documents */}
         <UploadSection />
+        
+        {/* Section 3: Chat with Agent */}
         <ChatLayout />
+        
+        {/* Section 4: Benefits */}
         <Benefits />
+        
+        {/* Section 5: CTA */}
         <FinalCTA />
       </main>
 
