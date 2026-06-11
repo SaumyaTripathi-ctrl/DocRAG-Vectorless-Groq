@@ -45,38 +45,30 @@ export function ChatLayout() {
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.98, y: 50 }}
+          initial={{ opacity: 0, scale: 0.98, y: 20 }}
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="max-w-6xl mx-auto h-[700px] border border-zinc-200 rounded-[2.5rem] bg-white flex shadow-2xl overflow-hidden relative"
         >
-          {/* Sidebar - Document List */}
-          <motion.div 
-            initial={{ x: -20, opacity: 0 }}
-            whileInView={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="w-72 border-r border-zinc-100 bg-zinc-50/30 flex flex-col"
-          >
+          {/* Sidebar */}
+          <div className="w-72 border-r border-zinc-100 bg-zinc-50/30 flex flex-col hidden lg:flex">
             <div className="p-6 border-b border-zinc-100 flex items-center gap-2">
               <Layout className="w-3.5 h-3.5 text-indigo-600" />
               <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Source Files</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {['Annual_Report.pdf', 'Research_Paper.docx', 'Meeting_Notes.txt'].map((doc, i) => (
-                <motion.div 
+                <div 
                   key={i} 
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + i * 0.1 }}
                   className={`flex items-center gap-3 p-4 rounded-2xl text-xs transition-all ${i === 0 ? 'bg-white border border-zinc-100 text-zinc-900 font-bold shadow-sm' : 'text-zinc-500'}`}
                 >
                   <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-300'}`} />
                   <span className="truncate">{doc}</span>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
 
           {/* Chat Interface */}
           <div className="flex-1 flex flex-col bg-white">
@@ -98,7 +90,7 @@ export function ChatLayout() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100"
+                    className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
                   >
                     <Sparkles className="w-5 h-5 text-white" />
                   </motion.div>
@@ -116,12 +108,9 @@ export function ChatLayout() {
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-4 flex flex-wrap gap-2"
                         >
-                          <motion.span 
-                            whileHover={{ scale: 1.05 }}
-                            className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-indigo-100 cursor-pointer shadow-sm"
-                          >
+                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full flex items-center gap-1.5 border border-indigo-100 shadow-sm">
                             <Database className="w-2.5 h-2.5" /> Source: Page 14
-                          </motion.span>
+                          </span>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -131,31 +120,19 @@ export function ChatLayout() {
             </div>
 
             <div className="p-8 pt-0">
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="flex gap-4 bg-zinc-50 border border-zinc-200 rounded-[1.5rem] p-2 pr-2"
-              >
+              <div className="flex gap-4 bg-zinc-50 border border-zinc-200 rounded-[1.5rem] p-2 pr-2">
                 <div className="flex-1 flex items-center px-6 text-zinc-400 text-sm italic font-medium">
                   Ask your documents anything...
                 </div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="icon" className="bg-indigo-600 hover:bg-indigo-700 w-12 h-12 rounded-xl shadow-lg shadow-indigo-100">
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </motion.div>
-              </motion.div>
+                <Button size="icon" className="bg-indigo-600 hover:bg-indigo-700 w-12 h-12 rounded-xl shadow-lg">
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
           </div>
 
           {/* Citations Panel */}
-          <motion.div 
-            initial={{ x: 20, opacity: 0 }}
-            whileInView={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="w-80 border-l border-zinc-100 bg-zinc-50/30 flex flex-col"
-          >
+          <div className="w-80 border-l border-zinc-100 bg-zinc-50/30 flex flex-col hidden xl:flex">
             <div className="p-6 border-b border-zinc-100 flex items-center gap-2">
               <Database className="w-3.5 h-3.5 text-indigo-600" />
               <h3 className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Citations</h3>
@@ -167,20 +144,17 @@ export function ChatLayout() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={showCitations ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: i * 0.15 + 0.3 }}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  className={`p-4 bg-white border rounded-2xl shadow-sm space-y-2 group cursor-pointer transition-all ${i === 0 && showCitations ? 'border-indigo-500 ring-2 ring-indigo-50' : 'border-zinc-100'}`}
+                  className={`p-4 bg-white border rounded-2xl shadow-sm space-y-2 group transition-all ${i === 0 && showCitations ? 'border-indigo-500 ring-2 ring-indigo-50' : 'border-zinc-100'}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold text-indigo-600 uppercase">Page {page}</span>
-                    <motion.div whileHover={{ rotate: 15 }}>
-                      <Database className="w-3 h-3 text-zinc-300 group-hover:text-indigo-500 transition-colors" />
-                    </motion.div>
+                    <Database className="w-3 h-3 text-zinc-300 group-hover:text-indigo-500 transition-colors" />
                   </div>
                   <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">"...revenue increase driven by enterprise growth and subscription metrics..."</p>
                 </motion.div>
               ))}
             </div>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </section>

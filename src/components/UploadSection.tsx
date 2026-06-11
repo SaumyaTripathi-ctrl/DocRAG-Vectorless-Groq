@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { Upload, FileText, CheckCircle2 } from 'lucide-react';
-import { useRef } from 'react';
 
 const MOCK_FILES = [
   { name: 'Annual_Report.pdf', size: '2.4 MB', icon: FileText, color: 'text-red-500' },
@@ -11,10 +10,8 @@ const MOCK_FILES = [
 ];
 
 export function UploadSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
   return (
-    <section ref={sectionRef} className="py-32 bg-zinc-50 border-y border-zinc-100 relative">
+    <section className="py-32 bg-zinc-50 border-y border-zinc-100 relative">
       <div className="container mx-auto px-6 max-w-4xl">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -28,16 +25,16 @@ export function UploadSection() {
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white rounded-[2.5rem] border border-zinc-200 p-10 shadow-sm relative overflow-hidden"
+          className="bg-white rounded-[2.5rem] border border-zinc-200 p-8 shadow-sm relative overflow-hidden"
         >
           {/* Drag & Drop Area */}
           <motion.div 
-            whileHover={{ borderColor: 'rgba(99, 102, 241, 0.4)' }}
-            className="border-2 border-dashed border-zinc-100 rounded-[1.5rem] p-16 text-center transition-all cursor-pointer bg-zinc-50/30 mb-8 group"
+            whileHover={{ borderColor: 'rgba(99, 102, 241, 0.4)', backgroundColor: 'rgba(249, 250, 251, 1)' }}
+            className="border-2 border-dashed border-zinc-100 rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-zinc-50/30 mb-8 group"
           >
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-zinc-100 group-hover:scale-105 transition-all">
               <Upload className="w-8 h-8 text-indigo-500" />
@@ -46,17 +43,16 @@ export function UploadSection() {
             <p className="text-sm text-zinc-400 mt-1 font-medium">PDF, DOCX, PPTX up to 50MB</p>
           </motion.div>
 
-          {/* File List with Progress Simulation */}
+          {/* File List */}
           <div className="space-y-4">
             {MOCK_FILES.map((file, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -10 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.2 + 0.3, duration: 0.6 }}
-                whileHover={{ x: 5, backgroundColor: 'rgba(250, 250, 250, 1)' }}
-                className="flex flex-col p-5 rounded-2xl border border-zinc-100 bg-white transition-all shadow-sm"
+                transition={{ delay: i * 0.1 + 0.3, duration: 0.6 }}
+                className="flex flex-col p-5 rounded-2xl border border-zinc-100 bg-white shadow-sm"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-4">
@@ -83,7 +79,6 @@ export function UploadSection() {
                   </div>
                 </div>
 
-                {/* Simulated Progress Bar */}
                 <div className="relative h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
