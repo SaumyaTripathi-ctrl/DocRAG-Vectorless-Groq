@@ -3,13 +3,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { FileText, Brain, Sparkles, ChevronRight, MessageSquare } from 'lucide-react';
+import { FileText, Sparkles, ChevronRight, MessageSquare, Database } from 'lucide-react';
 
 const DOCS = [
-  { type: 'PDF', color: 'text-red-400', orbitSpeed: 15, radius: 120, delay: 0 },
-  { type: 'DOCX', color: 'text-blue-400', orbitSpeed: 25, radius: 160, delay: 1 },
-  { type: 'PPTX', color: 'text-orange-400', orbitSpeed: 20, radius: 200, delay: 2 },
-  { type: 'TXT', color: 'text-zinc-400', orbitSpeed: 30, radius: 140, delay: 0.5 },
+  { type: 'PDF', color: 'text-red-400', orbitSpeed: 20, radius: 140, delay: 0 },
+  { type: 'DOCX', color: 'text-blue-400', orbitSpeed: 28, radius: 180, delay: 1.5 },
+  { type: 'PPTX', color: 'text-orange-400', orbitSpeed: 24, radius: 220, delay: 3 },
+  { type: 'TXT', color: 'text-zinc-400', orbitSpeed: 32, radius: 160, delay: 0.8 },
+];
+
+const TRY_PROMPTS = [
+  "Summarize this report",
+  "Extract key findings",
+  "Compare documents"
 ];
 
 export function Hero() {
@@ -18,8 +24,8 @@ export function Hero() {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({
-        x: (e.clientX / window.innerWidth - 0.5) * 20,
-        y: (e.clientY / window.innerHeight - 0.5) * 20,
+        x: (e.clientX / window.innerWidth - 0.5) * 15,
+        y: (e.clientY / window.innerHeight - 0.5) * 15,
       });
     };
     window.addEventListener('mousemove', handleMouseMove);
@@ -27,47 +33,55 @@ export function Hero() {
   }, []);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden mesh-gradient faint-grid">
+    <section className="relative min-h-[95vh] flex items-center pt-24 overflow-hidden mesh-gradient faint-grid">
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Column */}
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-8"
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold tracking-wider uppercase">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Intelligence at Scale</span>
+              <span>Enterprise Grade Intelligence</span>
             </div>
 
             <h1 className="text-5xl lg:text-6xl font-headline font-bold leading-[1.1] text-white tracking-tight max-w-xl">
               Chat With Your <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">Documents</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-indigo-400">Documents</span>
             </h1>
 
             <p className="text-lg text-zinc-400 max-w-lg leading-relaxed font-medium">
               Upload PDFs, DOCX, and PPTs and get instant, verifiable answers with precise source citations from your private knowledge base.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Button size="lg" className="rounded-full px-8 h-14 text-base font-bold bg-primary hover:bg-primary/90 shadow-[0_0_30px_rgba(139,92,246,0.2)] transition-all hover:scale-105">
-                Start Chatting Free
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-base font-semibold border-white/10 hover:bg-white/5 gap-2 group transition-all">
-                Watch Demo
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <Button size="lg" className="rounded-full px-10 h-14 text-base font-bold bg-primary hover:bg-primary/90 shadow-[0_0_30px_rgba(139,92,246,0.3)] transition-all hover:scale-105">
+                  Start Chatting Free
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Try asking:</span>
+                <div className="flex flex-wrap gap-2">
+                  {TRY_PROMPTS.map((prompt, i) => (
+                    <motion.button
+                      key={i}
+                      whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                      className="px-4 py-2 rounded-full border border-white/5 bg-white/5 text-xs text-zinc-400 transition-colors hover:text-white"
+                    >
+                      {prompt}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Live Demo Card */}
-            <div className="pt-4">
-              <LiveDemoCard />
-            </div>
-
-            <div className="flex items-center gap-6 pt-2">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Enterprise Secure</span>
+            <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">Secure Formats</span>
               <div className="flex gap-4 items-center opacity-40">
                 {['PDF', 'DOCX', 'PPTX', 'TXT'].map((ext) => (
                   <span key={ext} className="text-[10px] font-bold text-white">{ext}</span>
@@ -77,17 +91,54 @@ export function Hero() {
           </motion.div>
 
           {/* Right Column: AI Visual */}
-          <div className="relative h-[600px] hidden lg:flex items-center justify-center">
+          <div className="relative h-[650px] hidden lg:flex items-center justify-center">
+            {/* Background Orbit Rings */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+              {[140, 180, 220].map((r, i) => (
+                <div 
+                  key={i} 
+                  className="absolute rounded-full border border-primary/40"
+                  style={{ width: r * 2, height: r * 2 }}
+                />
+              ))}
+            </div>
+
+            {/* AI Core Pulse */}
+            <motion.div
+              animate={{ 
+                scale: [1, 1.4, 1],
+                opacity: [0, 0.3, 0]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="absolute w-32 h-32 bg-primary rounded-full blur-3xl pointer-events-none"
+            />
+
             {/* AI Core */}
             <motion.div
               style={{ x: mousePos.x, y: mousePos.y }}
-              animate={{ rotateY: 360 }}
-              transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-              className="relative z-20 w-56 h-56 bg-zinc-900/50 backdrop-blur-2xl rounded-[3rem] border border-white/10 shadow-2xl flex items-center justify-center group"
+              className="relative z-20 w-48 h-48 bg-zinc-900/40 backdrop-blur-3xl rounded-[3rem] border border-white/10 shadow-2xl flex items-center justify-center group"
             >
-              <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
-              <div className="w-24 h-24 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.4)]">
-                <Brain className="w-12 h-12 text-white" />
+              <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full opacity-40 group-hover:opacity-70 transition-opacity" />
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center shadow-[0_0_50px_rgba(139,92,246,0.5)]"
+              >
+                {/* Modern AI Symbol (Hex Node) */}
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+              </motion.div>
+              
+              {/* Answer Preview Card */}
+              <div className="absolute -right-24 -top-8 pointer-events-none">
+                <FloatingAnswerPreview />
               </div>
             </motion.div>
 
@@ -97,7 +148,7 @@ export function Hero() {
             ))}
 
             {/* Floating Particles */}
-            {[...Array(20)].map((_, i) => (
+            {[...Array(15)].map((_, i) => (
               <FloatingParticle key={i} />
             ))}
           </div>
@@ -120,17 +171,17 @@ function OrbitingDoc({ type, color, orbitSpeed, radius, delay, mousePos }: any) 
         position: 'absolute',
         width: radius * 2,
         height: radius * 2,
-        x: mousePos.x * 0.5,
-        y: mousePos.y * 0.5,
+        x: mousePos.x * 0.4,
+        y: mousePos.y * 0.4,
       }}
       className="flex items-start justify-center"
     >
       <motion.div 
         animate={{ rotate: -360 }}
         transition={{ duration: orbitSpeed, repeat: Infinity, ease: "linear" }}
-        className="bg-zinc-900/80 backdrop-blur-md border border-white/10 p-2.5 rounded-xl shadow-xl flex flex-col items-center gap-1"
+        className="bg-zinc-900/80 backdrop-blur-md border border-white/10 p-2.5 rounded-xl shadow-xl flex flex-col items-center gap-1 group"
       >
-        <FileText className={`w-6 h-6 ${color}`} />
+        <FileText className={`w-6 h-6 ${color} group-hover:scale-110 transition-transform`} />
         <span className={`text-[8px] font-bold ${color} opacity-60`}>{type}</span>
       </motion.div>
     </motion.div>
@@ -139,61 +190,60 @@ function OrbitingDoc({ type, color, orbitSpeed, radius, delay, mousePos }: any) 
 
 function FloatingParticle() {
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
-    setPos({ x: Math.random() * 1000 - 500, y: Math.random() * 1000 - 500 });
+    setIsClient(true);
+    setPos({ x: Math.random() * 800 - 400, y: Math.random() * 800 - 400 });
   }, []);
+
+  if (!isClient) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ 
         opacity: [0.1, 0.4, 0.1],
-        y: [0, -30, 0],
-        x: [0, 20, 0]
+        scale: [1, 1.2, 1],
       }}
-      transition={{ duration: 4 + Math.random() * 4, repeat: Infinity }}
+      transition={{ duration: 3 + Math.random() * 3, repeat: Infinity }}
       style={{ left: `50%`, top: `50%`, x: pos.x, y: pos.y }}
-      className="absolute w-1 h-1 bg-primary rounded-full"
+      className="absolute w-1 h-1 bg-primary/40 rounded-full blur-[1px]"
     />
   );
 }
 
-function LiveDemoCard() {
+function FloatingAnswerPreview() {
   const [step, setStep] = useState(0);
   const scenarios = [
-    { q: "What is the revenue growth?", a: "Revenue grew 23% YoY.", src: "Source: Page 12" },
-    { q: "Who leads the AI team?", a: "Sarah Chen is the Head of AI.", src: "Source: Page 4" },
-    { q: "Is the data encrypted?", a: "Yes, AES-256 at rest.", src: "Source: Security.pdf" },
+    { text: "Revenue increased by 23%", src: "Source: Page 12" },
+    { text: "AES-256 data encryption", src: "Source: Security.pdf" },
+    { text: "Sarah Chen is AI Head", src: "Source: Team.docx" },
   ];
 
   useEffect(() => {
-    const timer = setInterval(() => setStep(s => (s + 1) % scenarios.length), 4000);
+    const timer = setInterval(() => setStep(s => (s + 1) % scenarios.length), 5000);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="bg-zinc-900/40 backdrop-blur-xl border border-white/5 rounded-2xl p-5 max-w-sm shadow-2xl overflow-hidden group">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-2 text-primary font-bold text-[10px] tracking-widest uppercase">
-            <MessageSquare className="w-3 h-3" />
-            <span>Interactive Demo</span>
-          </div>
-          <p className="text-white font-semibold text-sm italic">"{scenarios[step].q}"</p>
-          <div className="space-y-2">
-            <p className="text-zinc-400 text-xs leading-relaxed">{scenarios[step].a}</p>
-            <span className="inline-block bg-primary/10 text-primary text-[9px] px-2 py-0.5 rounded-full font-bold">
-              {scenarios[step].src}
-            </span>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={step}
+        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -20, scale: 0.9 }}
+        className="bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 w-48 shadow-2xl space-y-2"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Live Insight</span>
+        </div>
+        <p className="text-white text-[11px] font-medium leading-relaxed">"{scenarios[step].text}"</p>
+        <span className="inline-block text-primary text-[9px] font-bold">
+          {scenarios[step].src}
+        </span>
+      </motion.div>
+    </AnimatePresence>
   );
 }
