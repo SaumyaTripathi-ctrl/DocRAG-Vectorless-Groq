@@ -14,6 +14,7 @@ const DOCS = [
     startPos: { x: -450, y: -220 },
     rotate: -15,
     stackZ: 40,
+    landProgress: 0.4, // Lands first
   },
   { 
     id: 'docx',
@@ -23,6 +24,7 @@ const DOCS = [
     startPos: { x: 450, y: -180 },
     rotate: 10,
     stackZ: 30,
+    landProgress: 0.45, // Lands second
   },
   { 
     id: 'pptx',
@@ -32,6 +34,7 @@ const DOCS = [
     startPos: { x: -400, y: 180 },
     rotate: -8,
     stackZ: 20,
+    landProgress: 0.5, // Lands third
   },
   { 
     id: 'txt',
@@ -41,6 +44,7 @@ const DOCS = [
     startPos: { x: 480, y: 220 },
     rotate: 12,
     stackZ: 10,
+    landProgress: 0.55, // Lands last
   },
 ];
 
@@ -73,26 +77,34 @@ interface DocumentCardProps {
 }
 
 function DocumentCard({ doc, scrollYProgress }: DocumentCardProps) {
-  // Phase 1: Gather (0 to 0.5) - All move to exactly 0, 0
-  const x = useTransform(scrollYProgress, [0, 0.5], [doc.startPos.x, 0]);
+  // Phase 1: Gather (0 to landProgress) - Sequential arrival
+  const x = useTransform(scrollYProgress, [0, doc.landProgress], [doc.startPos.x, 0]);
   
-  // Phase 2: Move down (0.5 to 1.0) - The stack travels together
+  // Phase 2: Move down (landProgress to 1.0) - Travel as a stack
+  // We calculate y so it starts from its unique y, lands at 0, then travels to 1200
   const y = useTransform(
     scrollYProgress, 
-    [0, 0.5, 1], 
-    [doc.startPos.y, 0, 1200]
+    [0, doc.landProgress, 1], 
+    [doc.startPos.y, 0, 1400]
   );
   
-  const rotate = useTransform(scrollYProgress, [0, 0.5], [doc.rotate, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5, 0.6], [1, 1, 1.1]);
+  // Rotation straightens out as it lands
+  const rotate = useTransform(scrollYProgress, [0, doc.landProgress], [doc.rotate, 0]);
   
-  // Make visible from the start (0), then fade out at the very end of travel
+  // Pulse effect when the stack is complete (around 0.6)
+  const scale = useTransform(scrollYProgress, [0, 0.55, 0.65, 0.75], [1, 1, 1.15, 1]);
+  
+  // Always visible from the start, fades at the very end
   const opacity = useTransform(scrollYProgress, [0, 0.9, 1], [1, 1, 0]);
   
   const shadow = useTransform(
     scrollYProgress,
-    [0.4, 0.6],
-    ["0px 4px 6px rgba(0,0,0,0.05)", "0px 25px 50px rgba(0,0,0,0.1)"]
+    [0, 0.55, 0.65],
+    [
+      "0px 4px 6px rgba(0,0,0,0.05)", 
+      "0px 10px 20px rgba(0,0,0,0.1)", 
+      "0px 40px 80px rgba(0,0,0,0.15)"
+    ]
   );
 
   return (
@@ -107,7 +119,7 @@ function DocumentCard({ doc, scrollYProgress }: DocumentCardProps) {
         zIndex: doc.stackZ,
         position: 'absolute',
       }}
-      className={`w-40 h-52 ${doc.bg} border border-zinc-200 rounded-[2rem] flex flex-col items-center justify-center gap-3 backdrop-blur-sm hidden lg:flex will-change-transform group transition-all duration-300`}
+      className={`w-40 h-52 ${doc.bg} border border-zinc-200 rounded-[2rem] flex flex-col items-center justify-center gap-3 backdrop-blur-sm hidden lg:flex will-change-transform group`}
     >
       <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center border border-zinc-100 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-300">
         <FileText className={`w-8 h-8 ${doc.color}`} />
@@ -126,19 +138,22 @@ export function Hero() {
   });
 
   return (
-    <section ref={containerRef} className="relative min-h-[120vh] bg-mesh overflow-visible">
-      <div className="container mx-auto px-6 h-[80vh] flex flex-col items-center justify-center text-center relative z-10">
+    <section ref={containerRef} className="relative min-h-[160vh] bg-mesh overflow-visible">
+      {/* Background Layer */}
+      <div className="absolute inset-0 bg-mesh opacity-50 -z-10" />
+
+      <div className="sticky top-0 h-screen flex flex-col items-center justify-center text-center overflow-visible">
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="space-y-8 max-w-4xl mx-auto"
+          className="space-y-8 max-w-4xl mx-auto relative z-20 pointer-events-none"
         >
           <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50/80 backdrop-blur-md border border-indigo-100 text-indigo-600 text-xs font-bold tracking-wide uppercase">
             Intelligent Document Analysis
           </motion.div>
 
-          <motion.h1 variants={itemVariants} className="text-5xl lg:text-7xl font-headline font-bold leading-[1.1] text-zinc-900 tracking-tight">
+          <motion.h1 variants={itemVariants} className="text-5xl lg:text-7xl font-headline font-bold leading-[1.1] text-zinc-900 tracking-tight pointer-events-auto">
             Chat With Your <br />
             <span className="text-indigo-600 relative">
               Documents.
@@ -151,11 +166,11 @@ export function Hero() {
             </span>
           </motion.h1>
 
-          <motion.p variants={itemVariants} className="text-xl text-zinc-500 max-w-lg mx-auto leading-relaxed font-medium">
+          <motion.p variants={itemVariants} className="text-xl text-zinc-500 max-w-lg mx-auto leading-relaxed font-medium pointer-events-auto">
             Upload PDFs, DOCX, and PPTs. Get instant, verifiable answers with source citations from your own knowledge base.
           </motion.p>
 
-          <motion.div variants={itemVariants} className="pt-4">
+          <motion.div variants={itemVariants} className="pt-4 pointer-events-auto">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-block">
               <Button size="lg" className="rounded-full px-12 h-16 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-100 hover:shadow-indigo-200 transition-all duration-300 group">
                 Start Free Trial
