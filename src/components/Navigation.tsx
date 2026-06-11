@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function Navigation() {
@@ -26,22 +26,22 @@ export function Navigation() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-500">
-          <Link href="#" className="hover:text-zinc-900 transition-colors duration-200">Product</Link>
-          <div className="relative group">
-            <Link href="#pricing" className="hover:text-zinc-900 transition-colors duration-200">Pricing</Link>
-            <span className="absolute -top-3 -right-6 bg-indigo-50 text-indigo-600 text-[8px] font-bold px-1.5 py-0.5 rounded-full scale-0 group-hover:scale-100 transition-transform">NEW</span>
+          <Link href="#product-workspace" className="hover:text-zinc-900 transition-colors duration-200">Workspace</Link>
+          <Link href="#features" className="hover:text-zinc-900 transition-colors duration-200">Capabilities</Link>
+          <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+            <Sparkles className="w-3 h-3 text-indigo-600" />
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">v1.0 Release</span>
           </div>
-          <Link href="#" className="hover:text-zinc-900 transition-colors duration-200">Security</Link>
         </nav>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="text-zinc-500 font-semibold hover:text-zinc-900 hover:bg-zinc-100/50 rounded-full px-5 transition-all">Login</Button>
+          <Button variant="ghost" className="text-zinc-500 font-semibold hover:text-zinc-900 hover:bg-zinc-100/50 rounded-full px-5 transition-all">Sign In</Button>
           <motion.div 
             whileHover={{ scale: 1.02 }} 
             whileTap={{ scale: 0.98 }}
           >
             <Button className="bg-zinc-900 text-white hover:bg-zinc-800 rounded-full px-6 font-bold transition-all shadow-lg shadow-zinc-200 hover:shadow-zinc-300">
-              Get Started
+              New Workspace
             </Button>
           </motion.div>
         </div>

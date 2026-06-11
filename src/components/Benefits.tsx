@@ -17,14 +17,18 @@ const benefitCards = [
   {
     icon: ShieldCheck,
     title: "Private & Secure",
-    description: "Enterprise isolation. Your data is encrypted and never used for training models."
+    description: "Enterprise isolation. Your data is encrypted locally and never used for training models."
   }
 ];
 
 export function Benefits() {
   return (
-    <section className="py-32 bg-zinc-50/50 relative overflow-hidden">
+    <section id="features" className="py-32 bg-zinc-50/50 relative overflow-hidden border-t border-zinc-100">
       <div className="container mx-auto px-6">
+        <div className="text-center max-w-2xl mx-auto mb-20">
+          <h2 className="text-3xl font-headline font-bold text-zinc-900 tracking-tight">Enterprise-Grade Intelligence</h2>
+          <p className="text-zinc-500 mt-4 font-medium leading-relaxed">Built for security and accuracy above all else.</p>
+        </div>
         <div className="grid md:grid-cols-3 gap-12">
           {benefitCards.map((benefit, i) => (
             <motion.div 
