@@ -14,25 +14,50 @@ export function ChatLayout() {
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: true, amount: 0.3 });
 
+  // "Flowing icons" that appear just before the chat starts
+  const [showFlowingIcons, setShowFlowingIcons] = useState(false);
+
   useEffect(() => {
     if (isInView) {
-      setIsTyping(true);
-      let i = 0;
-      const interval = setInterval(() => {
-        setTypedText(AI_RESPONSE.slice(0, i));
-        i++;
-        if (i > AI_RESPONSE.length) {
-          clearInterval(interval);
-          setIsTyping(false);
-          setTimeout(() => setShowCitations(true), 500);
-        }
-      }, 30);
-      return () => clearInterval(interval);
+      setShowFlowingIcons(true);
+      // Brief delay to suggest "processing" from previous section
+      const timer = setTimeout(() => {
+        setIsTyping(true);
+        let i = 0;
+        const interval = setInterval(() => {
+          setTypedText(AI_RESPONSE.slice(0, i));
+          i++;
+          if (i > AI_RESPONSE.length) {
+            clearInterval(interval);
+            setIsTyping(false);
+            setTimeout(() => setShowCitations(true), 500);
+          }
+        }, 30);
+        return () => clearInterval(interval);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [isInView]);
 
   return (
-    <section ref={containerRef} className="py-32 bg-white overflow-hidden">
+    <section ref={containerRef} className="py-32 bg-white overflow-hidden relative">
+      {/* Flowing Icons Transition Layer */}
+      {showFlowingIcons && !isTyping && typedText === "" && (
+        <div className="absolute inset-x-0 top-0 h-40 flex justify-center gap-12 pointer-events-none z-0">
+          {[1, 2, 3].map((id) => (
+            <motion.div
+              key={id}
+              initial={{ y: -100, opacity: 0, scale: 0.5 }}
+              animate={{ y: 200, opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, delay: id * 0.2, ease: "easeInOut" }}
+              className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-center"
+            >
+              <FileText className="w-5 h-5 text-indigo-500" />
+            </motion.div>
+          ))}
+        </div>
+      )}
+
       <div className="container mx-auto px-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -59,13 +84,16 @@ export function ChatLayout() {
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {['Annual_Report.pdf', 'Research_Paper.docx', 'Meeting_Notes.txt'].map((doc, i) => (
-                <div 
+                <motion.div 
                   key={i} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ delay: 0.5 + (i * 0.1) }}
                   className={`flex items-center gap-3 p-4 rounded-2xl text-xs transition-all ${i === 0 ? 'bg-white border border-zinc-100 text-zinc-900 font-bold shadow-sm' : 'text-zinc-500'}`}
                 >
                   <FileText className={`w-4 h-4 ${i === 0 ? 'text-red-500' : 'text-zinc-300'}`} />
                   <span className="truncate">{doc}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -77,7 +105,7 @@ export function ChatLayout() {
                 <motion.div 
                   initial={{ opacity: 0, x: 20 }}
                   animate={isInView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 1 }}
                   className="bg-zinc-900 text-white p-5 rounded-[1.5rem] rounded-tr-sm text-sm max-w-[80%] font-medium shadow-xl"
                 >
                   What was the growth in Q3?
@@ -89,17 +117,17 @@ export function ChatLayout() {
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15, delay: 1.5 }}
                     className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
                   >
                     <Sparkles className="w-5 h-5 text-white" />
                   </motion.div>
                   <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-[1.5rem] rounded-tl-sm text-sm max-w-[90%] leading-relaxed text-zinc-600">
                     <div className="text-[10px] font-bold text-indigo-600 mb-2 uppercase tracking-widest">AI Agent</div>
-                    <p className="min-h-[1.5em] relative">
+                    <div className="min-h-[1.5em] relative">
                       {typedText}
                       {isTyping && <span className="cursor-blink" />}
-                    </p>
+                    </div>
                     
                     <AnimatePresence>
                       {showCitations && (

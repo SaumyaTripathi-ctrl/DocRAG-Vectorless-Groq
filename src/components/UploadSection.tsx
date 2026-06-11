@@ -11,7 +11,7 @@ const MOCK_FILES = [
 
 export function UploadSection() {
   return (
-    <section className="py-32 bg-zinc-50 border-y border-zinc-100 relative">
+    <section className="py-32 bg-zinc-50 border-y border-zinc-100 relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-4xl">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -31,11 +31,41 @@ export function UploadSection() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="bg-white rounded-[2.5rem] border border-zinc-200 p-8 shadow-sm relative overflow-hidden"
         >
+          {/* Reaction Overlay / Glow triggered by "incoming" documents */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: [0, 0.5, 0] }}
+            viewport={{ once: true, margin: "-200px" }}
+            transition={{ duration: 2, times: [0, 0.5, 1] }}
+            className="absolute inset-0 bg-indigo-500/5 pointer-events-none"
+          />
+
           {/* Drag & Drop Area */}
           <motion.div 
             whileHover={{ borderColor: 'rgba(99, 102, 241, 0.4)', backgroundColor: 'rgba(249, 250, 251, 1)' }}
-            className="border-2 border-dashed border-zinc-100 rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-zinc-50/30 mb-8 group"
+            className="border-2 border-dashed border-zinc-100 rounded-[2rem] p-16 text-center transition-all cursor-pointer bg-zinc-50/30 mb-8 group relative overflow-hidden"
           >
+            {/* Processing Overlay triggered when in viewport */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "-200px" }}
+              transition={{ delay: 0.5 }}
+              className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-10"
+            >
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="absolute inset-0 bg-indigo-100 rounded-full blur-xl"
+                  />
+                  <Upload className="w-10 h-10 text-indigo-500 relative z-10" />
+                </div>
+                <span className="text-sm font-bold text-indigo-600 animate-pulse">Processing Documents...</span>
+              </div>
+            </motion.div>
+
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-zinc-100 group-hover:scale-105 transition-all">
               <Upload className="w-8 h-8 text-indigo-500" />
             </div>
@@ -43,7 +73,7 @@ export function UploadSection() {
             <p className="text-sm text-zinc-400 mt-1 font-medium">PDF, DOCX, PPTX up to 50MB</p>
           </motion.div>
 
-          {/* File List */}
+          {/* File List appearing one-by-one */}
           <div className="space-y-4">
             {MOCK_FILES.map((file, i) => (
               <motion.div 
@@ -51,7 +81,7 @@ export function UploadSection() {
                 initial={{ opacity: 0, x: -10 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 + 0.3, duration: 0.6 }}
+                transition={{ delay: i * 0.1 + 1.2, duration: 0.6 }}
                 className="flex flex-col p-5 rounded-2xl border border-zinc-100 bg-white shadow-sm"
               >
                 <div className="flex items-center justify-between mb-2">
@@ -70,7 +100,7 @@ export function UploadSection() {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: (i * 0.2) + 1.2 }}
+                      transition={{ delay: (i * 0.2) + 2 }}
                       className="flex items-center gap-2"
                     >
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Ready</span>
@@ -84,7 +114,7 @@ export function UploadSection() {
                     initial={{ width: 0 }}
                     whileInView={{ width: "100%" }}
                     viewport={{ once: true }}
-                    transition={{ duration: 1.2, delay: i * 0.2 + 0.5, ease: "easeInOut" }}
+                    transition={{ duration: 1, delay: i * 0.2 + 1.5, ease: "easeInOut" }}
                     className="absolute inset-0 bg-indigo-500 rounded-full"
                   />
                 </div>
