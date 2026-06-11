@@ -11,9 +11,9 @@ const DOCS = [
     type: 'PDF', 
     color: 'text-red-500', 
     bg: 'bg-red-50', 
-    startPos: { x: -400, y: -50 }, // Far Left
+    startPos: { x: -600, y: -100 }, // Far Left
     endPos: { x: 0, y: 0 },
-    rotate: -15,
+    rotate: -25,
     stackZ: 40
   },
   { 
@@ -21,9 +21,9 @@ const DOCS = [
     type: 'DOCX', 
     color: 'text-blue-500', 
     bg: 'bg-blue-50', 
-    startPos: { x: 350, y: -250 }, // Top Right
-    endPos: { x: 5, y: 5 },
-    rotate: 12,
+    startPos: { x: 500, y: -350 }, // Top Right
+    endPos: { x: 0, y: 0 },
+    rotate: 15,
     stackZ: 30
   },
   { 
@@ -31,9 +31,9 @@ const DOCS = [
     type: 'PPTX', 
     color: 'text-orange-500', 
     bg: 'bg-orange-50', 
-    startPos: { x: -350, y: 250 }, // Bottom Left
-    endPos: { x: 10, y: 10 },
-    rotate: -8,
+    startPos: { x: -500, y: 350 }, // Bottom Left
+    endPos: { x: 0, y: 0 },
+    rotate: -15,
     stackZ: 20
   },
   { 
@@ -41,9 +41,9 @@ const DOCS = [
     type: 'TXT', 
     color: 'text-zinc-500', 
     bg: 'bg-zinc-50', 
-    startPos: { x: 400, y: 50 }, // Far Right
-    endPos: { x: 15, y: 15 },
-    rotate: 10,
+    startPos: { x: 600, y: 100 }, // Far Right
+    endPos: { x: 0, y: 0 },
+    rotate: 20,
     stackZ: 10
   },
 ];
@@ -56,10 +56,15 @@ interface DocumentCardProps {
 }
 
 function DocumentCard({ doc, index, scrollYProgress, mousePos }: DocumentCardProps) {
-  const x = useTransform(scrollYProgress, [0, 1], [doc.startPos.x, doc.endPos.x]);
-  const y = useTransform(scrollYProgress, [0, 1], [doc.startPos.y, doc.endPos.y]);
-  const rotate = useTransform(scrollYProgress, [0, 1], [doc.rotate, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.8, 1], [1, 1.05, 1]);
+  // Movement: Move to center (0,0) by 70% scroll progress and stay there
+  const x = useTransform(scrollYProgress, [0, 0.7, 1], [doc.startPos.x, doc.endPos.x, doc.endPos.x]);
+  const y = useTransform(scrollYProgress, [0, 0.7, 1], [doc.startPos.y, doc.endPos.y, doc.endPos.y]);
+  
+  // Rotation: Straighten out as it stacks
+  const rotate = useTransform(scrollYProgress, [0, 0.7, 1], [doc.rotate, 0, 0]);
+  
+  // Scale: Subtle emphasis as they stack
+  const scale = useTransform(scrollYProgress, [0, 0.7, 0.8, 1], [1, 1.1, 1.1, 1]);
   const opacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
 
   return (
@@ -164,10 +169,13 @@ export function Hero() {
               </motion.div>
             </div>
 
-            <div className="flex items-center justify-center gap-8 pt-12 opacity-40">
-              {['PDF', 'DOCX', 'PPTX', 'TXT'].map(f => (
-                <span key={f} className="text-xs font-bold text-zinc-900 tracking-widest">{f}</span>
-              ))}
+            <div className="flex flex-col items-center gap-2 pt-8 opacity-60">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Try asking:</span>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                {['Summarize report', 'Extract findings', 'Compare files'].map(f => (
+                  <span key={f} className="text-xs font-semibold text-zinc-900 italic">"{f}"</span>
+                ))}
+              </div>
             </div>
           </motion.div>
         </div>
