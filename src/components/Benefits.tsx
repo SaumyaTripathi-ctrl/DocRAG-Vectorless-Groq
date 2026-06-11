@@ -23,7 +23,7 @@ const benefitCards = [
 
 export function Benefits() {
   return (
-    <section className="py-32 bg-zinc-50">
+    <section className="py-32 bg-zinc-50/50 relative overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-3 gap-12">
           {benefitCards.map((benefit, i) => (
@@ -31,18 +31,18 @@ export function Benefits() {
               key={i}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.6 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ delay: i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ y: -8 }}
-              className="space-y-6 group"
+              className="space-y-6 group p-8 rounded-[2rem] hover:bg-white hover:shadow-xl hover:shadow-zinc-200/50 transition-all duration-500"
             >
               <motion.div 
-                whileHover={{ rotate: 5, scale: 1.05 }}
-                className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm border border-zinc-100 transition-shadow group-hover:shadow-md"
+                whileHover={{ rotate: 10, scale: 1.1 }}
+                className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-zinc-100 transition-all duration-300 group-hover:shadow-indigo-100 group-hover:border-indigo-100"
               >
-                <benefit.icon className="w-6 h-6" />
+                <benefit.icon className="w-7 h-7" />
               </motion.div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <h3 className="text-xl font-headline font-bold text-zinc-900 tracking-tight">{benefit.title}</h3>
                 <p className="text-zinc-500 leading-relaxed text-sm font-medium">
                   {benefit.description}
