@@ -1,11 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Database, Sparkles, Send, User, Loader2, Layout } from 'lucide-react';
+import { FileText, Database, Sparkles, Send, User, Loader2, Layout, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect } from 'react';
 import { WorkspaceDocument } from '@/app/page';
-import { askQuestion } from '@/app/actions';
+import { askQuestion, getFollowUps } from '@/app/actions';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +13,7 @@ type Message = {
   role: 'user' | 'assistant';
   content: string;
   sources?: string[];
+  followUps?: string[];
 };
 
 interface ChatLayoutProps {
@@ -31,23 +32,33 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
     }
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const handleSendMessage = async (text: string = inputValue) => {
+    if (!text.trim() || isLoading) return;
 
-    const userMsg: Message = { role: 'user', content: inputValue };
+    const userMsg: Message = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
     setInputValue("");
     setIsLoading(true);
 
     try {
       const context = documents.map(d => `Document: ${d.name}\n${d.content}`).join('\n\n');
-      const response = await askQuestion(inputValue, context);
+      const response = await askQuestion(text, context);
+      
+      // Get follow-up questions for the new conversation state
+      const history = [...messages, userMsg, { role: 'assistant', content: response.answer }].map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        content: m.content
+      }));
+      
+      const followUps = await getFollowUps(history);
       
       const assistantMsg: Message = { 
         role: 'assistant', 
         content: response.answer,
-        sources: documents.length > 0 ? documents.map(d => d.name) : [] 
+        sources: documents.length > 0 ? documents.map(d => d.name) : [],
+        followUps: followUps
       };
+      
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm sorry, I encountered an error while processing your request." }]);
@@ -145,34 +156,56 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
                     key={i}
                     initial={{ opacity: 0, y: 15, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-5'}`}
+                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    {msg.role === 'assistant' && (
-                      <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-xl shadow-indigo-100 border-2 border-white">
-                        <Sparkles className="w-6 h-6 text-white" />
+                    <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-5 w-full'}`}>
+                      {msg.role === 'assistant' && (
+                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shrink-0 shadow-xl shadow-indigo-100 border-2 border-white">
+                          <Sparkles className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                      <div className={cn(
+                        "relative max-w-[85%] lg:max-w-[80%] p-6 rounded-[2.25rem] text-[15px] font-medium leading-relaxed shadow-sm",
+                        msg.role === 'user' 
+                          ? 'bg-zinc-900 text-white rounded-tr-sm shadow-zinc-200' 
+                          : 'bg-zinc-50 border border-zinc-100 text-zinc-800 rounded-tl-sm'
+                      )}>
+                        {msg.content}
+                        {msg.sources && msg.sources.length > 0 && (
+                          <div className="mt-5 pt-5 border-t border-zinc-200/50 flex flex-wrap gap-2">
+                            {msg.sources.slice(0, 3).map((src, idx) => (
+                              <span key={idx} className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full flex items-center gap-2 border border-indigo-100 transition-transform hover:scale-105 cursor-default">
+                                <Database className="w-3.5 h-3.5" /> {src}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className={cn(
-                      "relative max-w-[85%] lg:max-w-[80%] p-6 rounded-[2.25rem] text-[15px] font-medium leading-relaxed shadow-sm",
-                      msg.role === 'user' 
-                        ? 'bg-zinc-900 text-white rounded-tr-sm shadow-zinc-200' 
-                        : 'bg-zinc-50 border border-zinc-100 text-zinc-800 rounded-tl-sm'
-                    )}>
-                      {msg.content}
-                      {msg.sources && msg.sources.length > 0 && (
-                        <div className="mt-5 pt-5 border-t border-zinc-200/50 flex flex-wrap gap-2">
-                          {msg.sources.slice(0, 3).map((src, idx) => (
-                            <span key={idx} className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full flex items-center gap-2 border border-indigo-100">
-                              <Database className="w-3.5 h-3.5" /> {src}
-                            </span>
-                          ))}
+                      {msg.role === 'user' && (
+                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 ml-4 border border-zinc-200 shadow-sm">
+                          <User className="w-6 h-6 text-zinc-500" />
                         </div>
                       )}
                     </div>
-                    {msg.role === 'user' && (
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 ml-4 border border-zinc-200 shadow-sm">
-                        <User className="w-6 h-6 text-zinc-500" />
-                      </div>
+
+                    {/* Follow-up suggestions */}
+                    {msg.role === 'assistant' && msg.followUps && msg.followUps.length > 0 && i === messages.length - 1 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="ml-16 mt-4 flex flex-wrap gap-3"
+                      >
+                        {msg.followUps.map((question, qIdx) => (
+                          <button
+                            key={qIdx}
+                            onClick={() => handleSendMessage(question)}
+                            className="text-[13px] font-semibold text-zinc-500 bg-white border border-zinc-200 px-5 py-2.5 rounded-full hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-300 shadow-sm flex items-center gap-2 group"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {question}
+                          </button>
+                        ))}
+                      </motion.div>
                     )}
                   </motion.div>
                 ))}
@@ -203,7 +236,7 @@ export function ChatLayout({ documents }: ChatLayoutProps) {
                   className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 px-6 h-14 text-base font-medium placeholder:text-zinc-400"
                 />
                 <Button 
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={documents.length === 0 || isLoading || !inputValue.trim()}
                   size="icon" 
                   className="bg-indigo-600 hover:bg-indigo-700 w-14 h-14 rounded-[2rem] shadow-xl shadow-indigo-100 hover:shadow-indigo-200 transition-all shrink-0"

@@ -110,7 +110,7 @@ function DocumentCard({ doc, scrollYProgress }: DocumentCardProps) {
         zIndex: doc.stackZ,
         position: 'absolute',
       }}
-      className={`w-44 h-56 ${doc.bg} border border-zinc-200/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden lg:flex will-change-transform group shadow-sm`}
+      className={`w-44 h-56 ${doc.bg} border border-zinc-200/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 backdrop-blur-md hidden lg:flex will-change-transform group shadow-sm animate-float`}
     >
       <div className="w-16 h-16 rounded-[1.75rem] bg-white shadow-lg shadow-zinc-200/50 flex items-center justify-center border border-zinc-100 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
         <FileText className={`w-9 h-9 ${doc.color}`} />
