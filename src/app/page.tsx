@@ -10,7 +10,7 @@ import { Footer } from '@/components/Footer';
 
 export default function Home() {
   return (
-    <div className="min-h-screen font-body selection:bg-primary/10 overflow-x-hidden bg-white">
+    <div className="min-h-screen font-body selection:bg-primary/30 overflow-x-hidden bg-background">
       <Navigation />
       
       <main className="space-y-0">
