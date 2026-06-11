@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, FileText, Brain } from 'lucide-react';
-import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
+import { PlayCircle, FileText } from 'lucide-react';
+import { motion, AnimatePresence, useSpring, useMotionValue, useTransform } from 'framer-motion';
 
 const DOCUMENTS = [
   { id: 'pdf', label: 'PDF', color: 'bg-[#FF4B4B]', iconColor: 'text-[#FF4B4B]', orbitRadius: 220, delay: 0 },
@@ -16,6 +16,7 @@ export function Hero() {
   const [uploadIndex, setUploadIndex] = useState(-1);
   const [isGlowing, setIsGlowing] = useState(false);
   const [iteration, setIteration] = useState(0);
+  const [particles, setParticles] = useState<{ x: number; y: number; duration: number; delay: number }[]>([]);
 
   // Mouse Parallax values
   const mouseX = useMotionValue(0);
@@ -31,6 +32,16 @@ export function Hero() {
       mouseY.set((clientY / innerHeight) - 0.5);
     };
     window.addEventListener('mousemove', handleMouseMove);
+
+    // Initialize particles only on client-side to avoid hydration mismatch
+    const newParticles = [...Array(15)].map(() => ({
+      x: Math.random() * 600 - 300,
+      y: Math.random() * 600 - 300,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 5
+    }));
+    setParticles(newParticles);
+
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [mouseX, mouseY]);
 
@@ -68,17 +79,17 @@ export function Hero() {
           className="space-y-8 max-w-2xl"
         >
           <h1 className="text-6xl lg:text-7xl font-headline font-bold leading-[1.1]">
-            Chat With Your <span className="text-[#6366F1]">Documents</span>
+            Chat With Your <span className="text-primary">Documents</span>
           </h1>
           <p className="text-xl text-muted-foreground font-body leading-relaxed max-w-lg">
             Upload PDFs, DOCX, and more to get accurate answers from your own knowledge base with citation-backed intelligence.
           </p>
           
           <div className="flex flex-wrap gap-4">
-            <Button size="lg" className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white rounded-full px-10 h-16 text-lg shadow-2xl shadow-[#6366F1]/40 transition-all hover:scale-105 active:scale-95">
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-white rounded-full px-10 h-16 text-lg shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95">
               Get Started Free
             </Button>
-            <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg gap-3 border-[#6366F1]/20 text-[#6366F1] bg-white/50 backdrop-blur hover:bg-white/80 transition-all">
+            <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg gap-3 border-primary/20 text-primary bg-white/50 backdrop-blur hover:bg-white/80 transition-all">
               <PlayCircle className="w-6 h-6" />
               Watch Demo
             </Button>
@@ -93,7 +104,7 @@ export function Hero() {
             style={{ x: bgX, y: bgY }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10"
           >
-            <div className="w-[600px] h-[600px] bg-gradient-to-tr from-[#6366F1]/20 to-cyan-400/10 blur-[140px] rounded-full animated-gradient" />
+            <div className="w-[600px] h-[600px] bg-gradient-to-tr from-primary/20 to-cyan-400/10 blur-[140px] rounded-full animated-gradient" />
           </motion.div>
 
           {/* AI Cube */}
@@ -110,7 +121,7 @@ export function Hero() {
               ease: "easeInOut"
             }}
           >
-            <div className={`relative w-full h-full bg-gradient-to-br from-[#2D2D8A] to-[#4F46E5] rounded-[2.5rem] shadow-[0_50px_120px_rgba(79,70,229,0.4)] border-b-[10px] border-r-[10px] border-black/30 flex flex-col items-center justify-center overflow-hidden transition-all duration-500 ${isGlowing ? 'ring-8 ring-cyan-300 shadow-[0_0_80px_rgba(34,211,238,0.5)]' : ''}`}>
+            <div className={`relative w-full h-full bg-gradient-to-br from-[#2D2D8A] to-primary rounded-[2.5rem] shadow-[0_50px_120px_rgba(79,70,229,0.4)] border-b-[10px] border-r-[10px] border-black/30 flex flex-col items-center justify-center overflow-hidden transition-all duration-500 ${isGlowing ? 'ring-8 ring-cyan-300 shadow-[0_0_80px_rgba(34,211,238,0.5)]' : ''}`}>
               <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-cyan-300/30 to-transparent" />
               <motion.div 
                 className="relative z-10 p-8 bg-[#3B32C0]/40 rounded-3xl border border-white/10 shadow-inner"
@@ -137,13 +148,13 @@ export function Hero() {
 
           {/* Particles */}
           <div className="absolute inset-0 pointer-events-none">
-            {[...Array(15)].map((_, i) => (
+            {particles.map((p, i) => (
               <motion.div
                 key={i}
                 className="absolute w-1 h-1 bg-cyan-400 rounded-full"
                 initial={{ 
-                  x: Math.random() * 600 - 300, 
-                  y: Math.random() * 600 - 300, 
+                  x: p.x, 
+                  y: p.y, 
                   opacity: 0 
                 }}
                 animate={{ 
@@ -152,9 +163,9 @@ export function Hero() {
                   scale: [0, 1, 0]
                 }}
                 transition={{ 
-                  duration: Math.random() * 3 + 2, 
+                  duration: p.duration, 
                   repeat: Infinity, 
-                  delay: Math.random() * 5 
+                  delay: p.delay 
                 }}
               />
             ))}
