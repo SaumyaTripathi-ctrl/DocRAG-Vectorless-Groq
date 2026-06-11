@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { PlayCircle, FileText, FileCode, FileType, FileTerminal } from 'lucide-react';
+import { PlayCircle, FileText, FileCode, FileType, FileTerminal, Brain } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 
