@@ -56,15 +56,22 @@ interface DocumentCardProps {
 }
 
 function DocumentCard({ doc, index, scrollYProgress, mousePos }: DocumentCardProps) {
-  // Movement: Move to center (0,0) by 70% scroll progress and stay there
-  const x = useTransform(scrollYProgress, [0, 0.7, 1], [doc.startPos.x, doc.endPos.x, doc.endPos.x]);
-  const y = useTransform(scrollYProgress, [0, 0.7, 1], [doc.startPos.y, doc.endPos.y, doc.endPos.y]);
+  // Movement: Sequential Stacking
+  // Stagger the arrival: index 0 (PDF) arrives first, index 3 (TXT) arrives last.
+  const startOffset = index * 0.08;
+  const endOffset = 0.6 + (index * 0.05);
+
+  // Movement: Move to center (0,0) based on staggered timeline
+  const x = useTransform(scrollYProgress, [startOffset, endOffset, 1], [doc.startPos.x, doc.endPos.x, doc.endPos.x]);
+  const y = useTransform(scrollYProgress, [startOffset, endOffset, 1], [doc.startPos.y, doc.endPos.y, doc.endPos.y]);
   
   // Rotation: Straighten out as it stacks
-  const rotate = useTransform(scrollYProgress, [0, 0.7, 1], [doc.rotate, 0, 0]);
+  const rotate = useTransform(scrollYProgress, [startOffset, endOffset, 1], [doc.rotate, 0, 0]);
   
-  // Scale: Subtle emphasis as they stack
-  const scale = useTransform(scrollYProgress, [0, 0.7, 0.8, 1], [1, 1.1, 1.1, 1]);
+  // Scale: Emphasize the completed stack at 0.7 - 0.9 scroll progress
+  const scale = useTransform(scrollYProgress, [0, 0.7, 0.8, 1], [1, 1, 1.15, 1.15]);
+  
+  // Opacity: Fade in early
   const opacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
 
   return (
@@ -113,6 +120,7 @@ export function Hero() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      // Only react if we are near the top of the page
       if (window.scrollY < window.innerHeight) {
         setMousePos({
           x: (e.clientX / window.innerWidth - 0.5) * 20,
@@ -129,6 +137,7 @@ export function Hero() {
   return (
     <section ref={containerRef} className="relative min-h-[150vh] bg-white">
       <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
+        {/* Subtle Background Accent */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.03)_0%,transparent_50%)]" />
         
         <div className="container mx-auto px-6 relative z-10 text-center">
@@ -180,6 +189,7 @@ export function Hero() {
           </motion.div>
         </div>
 
+        {/* Floating Documents Overlay */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
           {DOCS.map((doc, i) => (
             <DocumentCard 
