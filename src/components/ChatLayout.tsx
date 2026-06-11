@@ -1,3 +1,113 @@
 'use client';
-// This component has been integrated into the VisualStory scroll experience.
-export function ChatLayout() { return null; }
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, FileText, Quote, ChevronRight, Brain, MessageSquare } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
+export function ChatLayout() {
+  const [typedText, setTypedText] = useState("");
+  const fullText = "Based on the provided Annual Report, the key findings show a 23% increase in year-over-year revenue, primarily driven by the expansion of the SaaS enterprise segment. Operating expenses were reduced by 12% through infrastructure optimization.";
+  
+  useEffect(() => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setTypedText(fullText.slice(0, i));
+      i++;
+      if (i > fullText.length) clearInterval(interval);
+    }, 20);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="py-24 bg-white overflow-hidden">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16 max-w-2xl mx-auto">
+          <h2 className="text-4xl font-headline font-bold text-slate-900 mb-4">Chat with Documents</h2>
+          <p className="text-lg text-slate-500">Ask questions and get answers directly from your knowledge base with verifiable sources.</p>
+        </div>
+
+        <div className="max-w-6xl mx-auto h-[700px] border border-slate-200 rounded-[2.5rem] bg-white flex shadow-2xl overflow-hidden">
+          {/* Column 1: Document List */}
+          <div className="w-64 border-r border-slate-100 bg-slate-50/30 flex flex-col">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Docs</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {['Annual_Report_2023.pdf', 'Growth_Strategy.docx', 'Tech_Audit.txt'].map((doc, i) => (
+                <div key={i} className={`flex items-center gap-3 p-3 rounded-xl text-sm transition-colors ${i === 0 ? 'bg-white border border-slate-100 shadow-sm text-primary' : 'text-slate-500 hover:bg-slate-50'}`}>
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{doc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Column 2: Chat Interface */}
+          <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 p-8 overflow-y-auto space-y-8">
+              {/* User Message */}
+              <div className="flex justify-end">
+                <div className="bg-slate-900 text-white p-4 rounded-2xl rounded-tr-sm text-sm max-w-[80%] shadow-lg">
+                  What are the key findings from the annual report?
+                </div>
+              </div>
+
+              {/* AI Message */}
+              <div className="flex justify-start gap-4">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shrink-0">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl rounded-tl-sm text-sm max-w-[85%] leading-relaxed text-slate-700">
+                  {typedText}
+                  <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-8 pt-0">
+              <div className="flex gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-2 pr-2">
+                <Input 
+                  disabled 
+                  placeholder="Ask about your documents..." 
+                  className="bg-transparent border-none focus-visible:ring-0 text-slate-900 placeholder:text-slate-400"
+                />
+                <Button size="icon" className="bg-primary hover:bg-primary/90 rounded-xl">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Column 3: Citations */}
+          <div className="w-72 border-l border-slate-100 bg-slate-50/30 flex flex-col">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sources</h3>
+            </div>
+            <div className="flex-1 p-6 space-y-4">
+              <AnimatePresence>
+                {typedText.length > 50 && [12, 17, 24].map((page, i) => (
+                  <motion.div 
+                    key={page}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.2 }}
+                    className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm space-y-2 group cursor-pointer hover:border-primary/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-primary uppercase">Report • P{page}</span>
+                      <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-primary transition-colors" />
+                    </div>
+                    <p className="text-[11px] text-slate-500 italic leading-relaxed">"...revenue increase driven by enterprise segment growth across..."</p>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

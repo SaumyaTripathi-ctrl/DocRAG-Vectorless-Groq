@@ -1,56 +1,48 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MessageSquare, Quote, ShieldCheck } from 'lucide-react';
+import { MessageSquare, ShieldCheck, FileSearch } from 'lucide-react';
 
 const benefitCards = [
   {
     icon: MessageSquare,
     title: "Ask Anything",
-    description: "Ask complex questions in natural language and get instant, human-like responses from your own knowledge."
+    description: "Complex reasoning on multiple large documents simultaneously. No limits on curiosity."
   },
   {
-    icon: Quote,
+    icon: FileSearch,
     title: "Source Citations",
-    description: "Every answer includes deep-linked page citations so you can verify facts and navigate to original sources."
+    description: "Verifiable answers with direct links to the exact paragraph and page of your source documents."
   },
   {
     icon: ShieldCheck,
     title: "Private & Secure",
-    description: "Your documents are stored in isolated encrypted silos and are never used to train public AI models."
+    description: "Enterprise-grade encryption. Your data is isolated and never used for training models."
   }
 ];
 
 export function Benefits() {
   return (
-    <section id="features" className="py-40 bg-background relative overflow-hidden">
+    <section className="py-32 bg-slate-50/50 relative overflow-hidden">
       <div className="container mx-auto px-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-20"
-        >
-          <h2 className="text-4xl lg:text-5xl font-headline font-bold mb-4 text-white">Powerful Research Tools</h2>
-          <p className="text-white/40 text-lg">Designed for the modern knowledge worker.</p>
-        </motion.div>
+        <div className="text-center mb-20">
+          <h2 className="text-3xl lg:text-4xl font-headline font-bold mb-4 text-slate-900">Built for Professionals</h2>
+          <p className="text-slate-500 max-w-lg mx-auto">Enterprise-ready tools to accelerate your research and knowledge discovery.</p>
+        </div>
 
-        <div className="grid md:grid-cols-3 gap-10">
+        <div className="grid md:grid-cols-3 gap-8">
           {benefitCards.map((benefit, i) => (
             <motion.div 
               key={i}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.2 }}
-              className="p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 space-y-8 text-center transition-all hover:bg-white/[0.04] group hover:border-primary/20"
+              whileHover={{ y: -5 }}
+              className="p-10 rounded-[2rem] bg-white border border-slate-200 space-y-6 transition-all shadow-sm hover:shadow-xl hover:shadow-primary/5 group"
             >
-              <div className="w-20 h-20 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center mx-auto text-primary transition-all group-hover:scale-110 group-hover:bg-primary group-hover:text-white shadow-xl">
-                <benefit.icon className="w-10 h-10" />
+              <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <benefit.icon className="w-7 h-7" />
               </div>
-              <div className="space-y-4">
-                <h3 className="text-2xl font-headline font-bold text-white">{benefit.title}</h3>
-                <p className="text-white/40 leading-relaxed text-sm">
+              <div className="space-y-3">
+                <h3 className="text-xl font-headline font-bold text-slate-900">{benefit.title}</h3>
+                <p className="text-slate-500 leading-relaxed text-sm">
                   {benefit.description}
                 </p>
               </div>
