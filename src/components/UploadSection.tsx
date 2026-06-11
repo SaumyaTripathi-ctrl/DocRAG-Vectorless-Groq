@@ -11,8 +11,8 @@ const MOCK_FILES = [
 
 export function UploadSection() {
   return (
-    <section className="py-40 bg-zinc-50 border-y border-zinc-100 relative overflow-hidden">
-      <div className="container mx-auto px-6 max-w-4xl">
+    <section className="py-40 bg-zinc-50 border-y border-zinc-100 relative overflow-visible">
+      <div className="container mx-auto px-6 max-w-4xl relative">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -29,7 +29,7 @@ export function UploadSection() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white rounded-[3rem] border border-zinc-200 p-10 shadow-sm relative"
+          className="bg-white rounded-[3rem] border border-zinc-200 p-10 shadow-sm relative z-10"
         >
           {/* Decorative Reaction Effect when the scroll animation "lands" */}
           <motion.div
@@ -41,7 +41,7 @@ export function UploadSection() {
           />
 
           {/* Drag & Drop Area */}
-          <div className="border-2 border-dashed border-zinc-100 rounded-[2rem] p-20 text-center transition-all cursor-pointer bg-zinc-50/30 mb-10 group relative">
+          <div className="border-2 border-dashed border-zinc-100 rounded-[2rem] p-20 text-center transition-all cursor-pointer bg-zinc-50/30 mb-10 group relative overflow-hidden">
             <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-100 group-hover:scale-105 transition-all">
               <Upload className="w-10 h-10 text-indigo-500" />
             </div>
@@ -53,11 +53,11 @@ export function UploadSection() {
           <div className="space-y-5">
             {MOCK_FILES.map((file, i) => (
               <motion.div 
-                key={i}
+                key={file.name}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.15 + 0.5, duration: 0.8 }}
+                transition={{ delay: i * 0.15 + 0.3, duration: 0.8 }}
                 className="flex flex-col p-6 rounded-[1.5rem] border border-zinc-100 bg-white shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
@@ -76,7 +76,7 @@ export function UploadSection() {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: (i * 0.2) + 1 }}
+                      transition={{ delay: (i * 0.2) + 0.8 }}
                       className="flex items-center gap-2"
                     >
                       <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full uppercase">Complete</span>
@@ -90,7 +90,7 @@ export function UploadSection() {
                     initial={{ width: 0 }}
                     whileInView={{ width: "100%" }}
                     viewport={{ once: true }}
-                    transition={{ duration: 1.2, delay: i * 0.2 + 0.6, ease: "easeInOut" }}
+                    transition={{ duration: 1.2, delay: i * 0.2 + 0.4, ease: "easeInOut" }}
                     className="absolute inset-0 bg-indigo-500 rounded-full"
                   />
                 </div>
