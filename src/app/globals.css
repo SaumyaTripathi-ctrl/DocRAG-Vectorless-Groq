@@ -38,18 +38,20 @@
   }
 }
 
-/* Professional Workspace Backgrounds */
-.bg-grid {
-  background-image: radial-gradient(circle, #e2e8f0 1.2px, transparent 1.2px);
-  background-size: 48px 48px;
-}
-
+/* Professional Multi-tone Mesh Gradient */
 .bg-mesh {
   background-color: #ffffff;
   background-image: 
     radial-gradient(at 0% 0%, hsla(262, 83%, 98%, 1) 0, transparent 50%),
-    radial-gradient(at 50% 0%, hsla(220, 100%, 98%, 1) 0, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(252, 83%, 98%, 1) 0, transparent 50%);
+    radial-gradient(at 100% 0%, hsla(280, 83%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(200, 83%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(252, 83%, 98%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 50%, hsla(220, 100%, 99%, 1) 0, transparent 50%);
+}
+
+.bg-grid {
+  background-image: radial-gradient(circle, #e2e8f0 1.2px, transparent 1.2px);
+  background-size: 48px 48px;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -67,4 +69,13 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #d4d4d8;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
