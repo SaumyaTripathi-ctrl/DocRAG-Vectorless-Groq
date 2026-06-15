@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  allowedDevOrigins: ['169.254.228.201', '169.254.228.201:9002', 'localhost:9002', '127.0.0.1:9002'],
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['169.254.228.201:9002', '169.254.228.201', 'localhost:9002', '127.0.0.1:9002'],
+    },
+  },
   images: {
     remotePatterns: [
       {

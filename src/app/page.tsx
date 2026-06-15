@@ -31,6 +31,10 @@ export default function Home() {
     }, 1500);
   };
 
+  const handleResetWorkspace = () => {
+    setUploadedDocs([]);
+  };
+
   return (
     <div className="min-h-screen font-body selection:bg-indigo-100 selection:text-indigo-900 bg-white relative">
       {/* Persistent Professional Background Layer */}
@@ -45,7 +49,7 @@ export default function Home() {
           <UploadSection onUpload={handleUpload} isProcessing={isProcessing} />
           
           <div id="workspace-chat">
-            <ChatLayout documents={uploadedDocs} />
+            <ChatLayout documents={uploadedDocs} onResetWorkspace={handleResetWorkspace} />
           </div>
         </div>
 

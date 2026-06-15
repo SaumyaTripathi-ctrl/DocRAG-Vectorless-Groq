@@ -13,21 +13,35 @@ interface UploadSectionProps {
 export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newDocs: WorkspaceDocument[] = Array.from(files).map(file => ({
-      name: file.name,
-      size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
-      type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-      content: `Extracted content for ${file.name}. This document contains detailed analysis and professional findings.`
-    }));
+    const fileList = Array.from(files);
+    
+    // Read uploaded files using FileReader and store as Base64 Data URLs
+    const readDocs = await Promise.all(
+      fileList.map(file => {
+        return new Promise<WorkspaceDocument>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64Data = event.target?.result as string;
+            resolve({
+              name: file.name,
+              size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
+              type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
+              content: base64Data
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    );
 
-    onUpload(newDocs);
+    onUpload(readDocs);
     toast({
       title: "Documents Received",
-      description: `Analyzing ${newDocs.length} file${newDocs.length > 1 ? 's' : ''}...`,
+      description: `Analyzing ${readDocs.length} file${readDocs.length > 1 ? 's' : ''}...`,
     });
   };
 
