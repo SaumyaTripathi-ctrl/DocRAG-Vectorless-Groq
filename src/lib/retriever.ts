@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { getEmbedding } from './ollama';
 
 export interface Document {
   name: string;
@@ -18,6 +17,31 @@ export interface DocumentChunk {
 export interface ExtractedDocument {
   text: string;
   pageCount?: number;
+}
+
+export interface ParentSection {
+  id: string;
+  documentName: string;
+  sectionName: string;
+  content: string;
+  startChar: number;
+  endChar: number;
+}
+
+export interface ChildChunk {
+  documentName: string;
+  sectionName: string;
+  chunkIndex: number;
+  content: string;
+  parentSectionId: string;
+  startChar: number;
+  endChar: number;
+}
+
+export interface VectorlessRetrievalResult {
+  chunks: DocumentChunk[];
+  scores: { chunkId: string; score: number }[];
+  method: 'vectorless-bm25';
 }
 
 /**
@@ -75,11 +99,6 @@ export async function extractTextFromDocument(docName: string, content: string):
   return { text: content };
 }
 
-// In-memory cache for document embeddings to avoid redundant generation calls
-// Key: SHA-256 hash of consolidated document content
-// Value: Array of document chunks with pre-generated embeddings
-const embeddingCache = new Map<string, DocumentChunk[]>();
-
 
 /**
  * Computes the SHA-256 hash of a string.
@@ -114,156 +133,6 @@ export function parseDocuments(documentContent: string): Document[] {
 }
 
 /**
- * Chunks a list of documents into chunks of 1500 characters with 300 characters overlap,
- * capturing exact start and end offsets.
- */
-export function chunkDocuments(documents: Document[], chunkSize = 1500, overlap = 300): DocumentChunk[] {
-  const allChunks: DocumentChunk[] = [];
-
-  for (const doc of documents) {
-    let start = 0;
-    let index = 1;
-    const content = doc.content;
-
-    if (content.length <= chunkSize) {
-      allChunks.push({
-        documentName: doc.name,
-        chunkIndex: 1,
-        content,
-        startChar: 0,
-        endChar: content.length
-      });
-      continue;
-    }
-
-    while (start < content.length) {
-      const end = Math.min(start + chunkSize, content.length);
-      let chunkText = content.substring(start, end);
-
-      // Sentence or paragraph boundary adjustment for cleaner chunks
-      if (end < content.length) {
-        const lastPeriod = chunkText.lastIndexOf('.');
-        const lastNewline = chunkText.lastIndexOf('\n');
-        const cutPoint = Math.max(lastPeriod, lastNewline);
-        if (cutPoint > chunkSize * 0.7) {
-          chunkText = chunkText.substring(0, cutPoint + 1);
-        }
-      }
-
-      const chunkLength = chunkText.length;
-      allChunks.push({
-        documentName: doc.name,
-        chunkIndex: index++,
-        content: chunkText.trim(),
-        startChar: start,
-        endChar: start + chunkLength
-      });
-
-      start += chunkLength - overlap;
-      if (chunkLength - overlap <= 0) {
-        start = end; // Prevent infinite loop
-      }
-    }
-  }
-
-  return allChunks;
-}
-
-/**
- * Generates embeddings for all document chunks in parallel.
- * Utilizes the global in-memory cache to load pre-calculated vectors.
- */
-export async function ensureChunkEmbeddings(chunks: DocumentChunk[], docHash: string): Promise<DocumentChunk[]> {
-  if (embeddingCache.has(docHash)) {
-    return embeddingCache.get(docHash)!;
-  }
-
-  // Generate embeddings for each chunk using nomic-embed-text
-  const updatedChunks = await Promise.all(
-    chunks.map(async (chunk) => {
-      try {
-        const embedding = await getEmbedding(chunk.content);
-        return { ...chunk, embedding };
-      } catch (err) {
-        console.error(`Error generating embedding for chunk ${chunk.chunkIndex} of ${chunk.documentName}:`, err);
-        return chunk;
-      }
-    })
-  );
-
-  embeddingCache.set(docHash, updatedChunks);
-  return updatedChunks;
-}
-
-/**
- * Computes cosine similarity between two numerical vectors.
- */
-export function cosineSimilarity(vecA: number[], vecB: number[]): number {
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < vecA.length; i++) {
-    dotProduct += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-/**
- * Classic BM25/TF-IDF similarity retriever (used as fallback for hybrid search).
- */
-export function retrieveRelevantChunks(query: string, chunks: DocumentChunk[], topK = 5): DocumentChunk[] {
-  const queryTokens = tokenize(query);
-  if (queryTokens.length === 0 || chunks.length === 0) {
-    return chunks.slice(0, topK);
-  }
-
-  const df: Record<string, number> = {};
-  for (const token of queryTokens) {
-    df[token] = 0;
-    for (const chunk of chunks) {
-      if (chunk.content.toLowerCase().includes(token)) {
-        df[token]++;
-      }
-    }
-  }
-
-  const idf: Record<string, number> = {};
-  const N = chunks.length;
-  for (const token of queryTokens) {
-    idf[token] = Math.log(1 + (N - df[token] + 0.5) / (df[token] + 0.5));
-  }
-
-  const scored = chunks.map(chunk => {
-    const chunkTextLower = chunk.content.toLowerCase();
-    let score = 0;
-
-    for (const token of queryTokens) {
-      const tf = countOccurrences(chunkTextLower, token);
-      if (tf > 0) {
-        const tfWeight = (tf * 2.2) / (tf + 1.2);
-        score += tfWeight * idf[token];
-      }
-    }
-
-    return { chunk, score };
-  });
-
-  const matched = scored
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(item => item.chunk);
-
-  if (matched.length === 0) {
-    return chunks.slice(0, topK);
-  }
-
-  return matched.slice(0, topK);
-}
-
-/**
  * Helper to tokenize text, excluding standard stop words.
  */
 function tokenize(text: string): string[] {
@@ -290,128 +159,259 @@ function countOccurrences(text: string, term: string): number {
 }
 
 /**
- * Hybrid Semantic & BM25 Fallback Retriever.
- * 
- * 1. Generates semantic query embedding.
- * 2. Performs cosine similarity search against Top 8 chunks.
- * 3. Fallback: If top similarity score is below 0.55, runs BM25 exact keyword search.
- * 4. Merges and deduplicates chunks from both runs, selecting the Top 8 overall.
+ * Divides document content into sections based on headings or paragraphs.
  */
-export async function retrieveRelevantChunksHybrid(
-  query: string,
-  chunksWithEmbeddings: DocumentChunk[],
-  topK = 8,
-  threshold = 0.55
-): Promise<{ 
-  chunks: DocumentChunk[]; 
-  scores: { chunkId: string; score: number }[];
-  method: 'semantic' | 'hybrid-fallback'; 
-}> {
-  if (chunksWithEmbeddings.length === 0) {
-    return { chunks: [], scores: [], method: 'semantic' };
-  }
-
-  // 1. Generate query embedding vector using nomic-embed-text
-  const queryEmbedding = await getEmbedding(query);
-
-  // 2. Perform cosine similarity calculation
-  const scored = chunksWithEmbeddings.map(chunk => {
-    const score = chunk.embedding 
-      ? cosineSimilarity(queryEmbedding, chunk.embedding)
-      : 0;
-    return { chunk, score };
-  });
-
-  // Sort similarity scores descending
-  const sortedSemantic = scored.sort((a, b) => b.score - a.score);
-  const topScore = sortedSemantic[0]?.score || 0;
-
-  // Retrieve top similarity scores for logging
-  const scores = sortedSemantic.slice(0, topK).map(item => ({
-    chunkId: `${item.chunk.documentName} (Chunk ${item.chunk.chunkIndex})`,
-    score: item.score
-  }));
-
-  if (topScore >= threshold) {
-    // Semantic similarity threshold met
-    const topChunks = sortedSemantic.slice(0, topK).map(item => item.chunk);
-    return { chunks: topChunks, scores, method: 'semantic' };
-  }
-
-  // 3. Fallback to BM25 retrieval
-  const bm25Chunks = retrieveRelevantChunks(query, chunksWithEmbeddings, topK);
-
-  // Merge and deduplicate results, giving precedence to BM25 matches
-  const mergedMap = new Map<string, DocumentChunk>();
+export function parseDocumentSections(doc: Document): ParentSection[] {
+  const content = doc.content;
+  const sections: ParentSection[] = [];
   
-  for (const chunk of bm25Chunks) {
-    const key = `${chunk.documentName}::${chunk.chunkIndex}`;
-    mergedMap.set(key, chunk);
+  // Find heading positions
+  const lines = content.split('\n');
+  const headingPositions: { index: number; line: string; pos: number }[] = [];
+  
+  let currentPos = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Markdown heading or CAPS line that looks like a title
+    const isMarkdownHeading = /^#{1,6}\s+.+/.test(trimmed);
+    const isCapHeading = /^[A-Z\s]{4,60}$/.test(trimmed) && trimmed.length > 5;
+    
+    if (isMarkdownHeading || isCapHeading) {
+      headingPositions.push({ index: i, line: trimmed, pos: currentPos });
+    }
+    currentPos += line.length + 1; // +1 for the newline character
   }
-
-  for (const item of sortedSemantic) {
-    if (item.score <= 0) continue;
-    const key = `${item.chunk.documentName}::${item.chunk.chunkIndex}`;
-    if (!mergedMap.has(key)) {
-      mergedMap.set(key, item.chunk);
+  
+  // If no headings, divide by fixed blocks
+  if (headingPositions.length === 0) {
+    let start = 0;
+    let secIndex = 1;
+    const sectionSize = 4000;
+    
+    while (start < content.length) {
+      const end = Math.min(start + sectionSize, content.length);
+      let cutPoint = end;
+      if (end < content.length) {
+        const searchRange = content.substring(end - 1000, end);
+        const lastDoubleNL = searchRange.lastIndexOf('\n\n');
+        const lastNL = searchRange.lastIndexOf('\n');
+        if (lastDoubleNL !== -1) {
+          cutPoint = end - 1000 + lastDoubleNL + 2;
+        } else if (lastNL !== -1) {
+          cutPoint = end - 1000 + lastNL + 1;
+        }
+      }
+      
+      const secContent = content.substring(start, cutPoint).trim();
+      sections.push({
+        id: `${doc.name}-sec-${secIndex}`,
+        documentName: doc.name,
+        sectionName: `Section ${secIndex}`,
+        content: secContent,
+        startChar: start,
+        endChar: cutPoint
+      });
+      
+      start = cutPoint;
+      secIndex++;
+    }
+  } else {
+    // Generate sections
+    for (let i = 0; i < headingPositions.length; i++) {
+      const current = headingPositions[i];
+      const next = headingPositions[i + 1];
+      
+      const start = current.pos;
+      const end = next ? next.pos : content.length;
+      
+      const secContent = content.substring(start, end).trim();
+      const sectionName = current.line.replace(/^#+\s+/, '').trim();
+      
+      sections.push({
+        id: `${doc.name}-sec-${i + 1}`,
+        documentName: doc.name,
+        sectionName: sectionName || `Section ${i + 1}`,
+        content: secContent,
+        startChar: start,
+        endChar: end
+      });
+    }
+    
+    // Capture preamble/introduction if there is text before the first heading
+    if (headingPositions[0] && headingPositions[0].pos > 0) {
+      const introContent = content.substring(0, headingPositions[0].pos).trim();
+      if (introContent) {
+        sections.unshift({
+          id: `${doc.name}-sec-0`,
+          documentName: doc.name,
+          sectionName: 'Introduction',
+          content: introContent,
+          startChar: 0,
+          endChar: headingPositions[0].pos
+        });
+      }
     }
   }
-
-  const mergedChunks = Array.from(mergedMap.values()).slice(0, topK);
-  return { chunks: mergedChunks, scores, method: 'hybrid-fallback' };
+  
+  return sections;
 }
 
 /**
- * Merges retrieved contiguous or overlapping document chunks.
- * Reconstructs original document text ranges to preserve structural headings and page order.
+ * Chunks parsed parent sections into child chunks.
  */
-export function mergeContiguousChunks(retrievedChunks: DocumentChunk[], documents: Document[]): string {
-  // Create a lookup for raw document contents
-  const docMap = new Map<string, string>();
-  for (const doc of documents) {
-    docMap.set(doc.name, doc.content);
-  }
-
-  // Group retrieved chunks by document
-  const groups = new Map<string, DocumentChunk[]>();
-  for (const chunk of retrievedChunks) {
-    const list = groups.get(chunk.documentName) || [];
-    list.push(chunk);
-    groups.set(chunk.documentName, list);
-  }
-
-  const finalMergedBlocks: string[] = [];
-
-  for (const [docName, chunks] of groups.entries()) {
-    const originalContent = docMap.get(docName) || '';
-    if (!originalContent) continue;
-
-    // Sort contiguous chunks by their start offset
-    const sorted = [...chunks].sort((a, b) => a.startChar - b.startChar);
-
-    const mergedIntervals: { start: number; end: number }[] = [];
-    for (const chunk of sorted) {
-      if (mergedIntervals.length === 0) {
-        mergedIntervals.push({ start: chunk.startChar, end: chunk.endChar });
-      } else {
-        const last = mergedIntervals[mergedIntervals.length - 1];
-        // Merge overlapping or touch-contiguous intervals
-        if (chunk.startChar <= last.end) {
-          last.end = Math.max(last.end, chunk.endChar);
-        } else {
-          mergedIntervals.push({ start: chunk.startChar, end: chunk.endChar });
+export function chunkSections(sections: ParentSection[], chunkSize = 1500, overlap = 300): ChildChunk[] {
+  const childChunks: ChildChunk[] = [];
+  let overallIndex = 1;
+  
+  for (const sec of sections) {
+    const content = sec.content;
+    if (content.length <= chunkSize) {
+      childChunks.push({
+        documentName: sec.documentName,
+        sectionName: sec.sectionName,
+        chunkIndex: overallIndex++,
+        content: content,
+        parentSectionId: sec.id,
+        startChar: sec.startChar,
+        endChar: sec.endChar
+      });
+      continue;
+    }
+    
+    let start = 0;
+    while (start < content.length) {
+      const end = Math.min(start + chunkSize, content.length);
+      let chunkText = content.substring(start, end);
+      
+      if (end < content.length) {
+        const lastPeriod = chunkText.lastIndexOf('.');
+        const lastNewline = chunkText.lastIndexOf('\n');
+        const cutPoint = Math.max(lastPeriod, lastNewline);
+        if (cutPoint > chunkSize * 0.7) {
+          chunkText = chunkText.substring(0, cutPoint + 1);
         }
       }
+      
+      const chunkLength = chunkText.length;
+      childChunks.push({
+        documentName: sec.documentName,
+        sectionName: sec.sectionName,
+        chunkIndex: overallIndex++,
+        content: chunkText.trim(),
+        parentSectionId: sec.id,
+        startChar: sec.startChar + start,
+        endChar: sec.startChar + start + chunkLength
+      });
+      
+      start += chunkLength - overlap;
+      if (chunkLength - overlap <= 0) {
+        start = end; // Prevent infinite loop
+      }
     }
+  }
+  
+  return childChunks;
+}
 
-    // Extract merged text blocks from raw content
-    for (const interval of mergedIntervals) {
-      const slicedText = originalContent.substring(interval.start, interval.end).trim();
-      if (slicedText) {
-        finalMergedBlocks.push(`--- Document: ${docName} ---\n${slicedText}\n-------------------`);
+/**
+ * Retrieves relevant chunks from child chunks using BM25, fetches their parent sections,
+ * and enriches the retrieved context with metadata.
+ */
+export function retrieveRelevantChunksVectorless(
+  query: string,
+  childChunks: ChildChunk[],
+  parentSections: ParentSection[],
+  topK = 8
+): VectorlessRetrievalResult {
+  const queryTokens = tokenize(query);
+  
+  if (queryTokens.length === 0 || childChunks.length === 0) {
+    const defaultChunks = childChunks.slice(0, topK).map(cc => {
+      const parent = parentSections.find(p => p.id === cc.parentSectionId);
+      const parentContent = parent ? parent.content : cc.content;
+      const enrichedContent = `[SOURCE]\nDocument Name: ${cc.documentName}\nSection Name: ${cc.sectionName}\nChunk Index: ${cc.chunkIndex}\n\n${parentContent}`;
+      
+      return {
+        documentName: cc.documentName,
+        chunkIndex: cc.chunkIndex,
+        content: enrichedContent,
+        startChar: cc.startChar,
+        endChar: cc.endChar
+      };
+    });
+    return {
+      chunks: defaultChunks,
+      scores: defaultChunks.map(c => ({ chunkId: `${c.documentName} (Chunk ${c.chunkIndex})`, score: 0 })),
+      method: 'vectorless-bm25'
+    };
+  }
+
+  const df: Record<string, number> = {};
+  for (const token of queryTokens) {
+    df[token] = 0;
+    for (const chunk of childChunks) {
+      if (chunk.content.toLowerCase().includes(token)) {
+        df[token]++;
       }
     }
   }
 
-  return finalMergedBlocks.join('\n\n');
+  const idf: Record<string, number> = {};
+  const N = childChunks.length;
+  for (const token of queryTokens) {
+    idf[token] = Math.log(1 + (N - df[token] + 0.5) / (df[token] + 0.5));
+  }
+
+  const scored = childChunks.map(chunk => {
+    const chunkTextLower = chunk.content.toLowerCase();
+    let score = 0;
+
+    for (const token of queryTokens) {
+      const tf = countOccurrences(chunkTextLower, token);
+      if (tf > 0) {
+        const tfWeight = (tf * 2.2) / (tf + 1.2);
+        score += tfWeight * idf[token];
+      }
+    }
+
+    return { chunk, score };
+  });
+
+  const matched = scored
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const selected = matched.length > 0 ? matched.slice(0, topK) : scored.sort((a, b) => b.score - a.score).slice(0, topK);
+
+  const enrichedChunks: DocumentChunk[] = [];
+  const scoresList: { chunkId: string; score: number }[] = [];
+
+  for (const item of selected) {
+    const cc = item.chunk;
+    const parent = parentSections.find(p => p.id === cc.parentSectionId);
+    const parentContent = parent ? parent.content : cc.content;
+    
+    const enrichedContent = `[SOURCE]\nDocument Name: ${cc.documentName}\nSection Name: ${cc.sectionName}\nChunk Index: ${cc.chunkIndex}\n\n${parentContent}`;
+    
+    enrichedChunks.push({
+      documentName: cc.documentName,
+      chunkIndex: cc.chunkIndex,
+      content: enrichedContent,
+      startChar: cc.startChar,
+      endChar: cc.endChar
+    });
+    
+    scoresList.push({
+      chunkId: `${cc.documentName} (Chunk ${cc.chunkIndex})`,
+      score: item.score
+    });
+  }
+
+  return {
+    chunks: enrichedChunks,
+    scores: scoresList,
+    method: 'vectorless-bm25'
+  };
 }

@@ -127,6 +127,43 @@ export function Hero() {
     offset: ["start start", "end end"]
   });
 
+  const handleStartWorkspaceClick = () => {
+    const target = document.getElementById('product-workspace');
+    if (!target) return;
+
+    // Accounts for sticky navigation header (approx 72px)
+    const targetPosition = target.getBoundingClientRect().top + window.scrollY - 72;
+    const startPosition = window.scrollY;
+    const distance = targetPosition - startPosition;
+    const duration = 1500; // ~1500ms duration (1.5 seconds) for a premium, slower transition
+    let startTime: number | null = null;
+
+    // Temporarily bypass CSS smooth scroll behavior to prevent browser overrides
+    const originalScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+
+    const easeInOutCubic = (t: number) => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    const animate = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      window.scrollTo(0, startPosition + distance * easeInOutCubic(progress));
+
+      if (timeElapsed < duration) {
+        requestAnimationFrame(animate);
+      } else {
+        // Restore CSS smooth scroll behavior
+        document.documentElement.style.scrollBehavior = originalScrollBehavior;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  };
+
   return (
     <section ref={containerRef} className="relative min-h-[180vh] bg-white overflow-visible">
       <div className="sticky top-0 h-screen flex flex-col items-center justify-center text-center overflow-visible">
@@ -160,7 +197,11 @@ export function Hero() {
 
           <motion.div variants={itemVariants} className="pt-8 pointer-events-auto flex items-center justify-center gap-8">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button size="lg" className="rounded-full px-14 h-20 text-xl font-bold bg-zinc-900 hover:bg-zinc-800 shadow-2xl shadow-zinc-200/80 transition-all duration-300 group">
+              <Button 
+                onClick={handleStartWorkspaceClick}
+                size="lg" 
+                className="rounded-full px-14 h-20 text-xl font-bold bg-zinc-900 hover:bg-zinc-800 shadow-2xl shadow-zinc-200/80 transition-all duration-300 group"
+              >
                 Start Workspace
                 <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
               </Button>

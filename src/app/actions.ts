@@ -2,13 +2,12 @@
 
 import { 
   parseDocuments, 
-  chunkDocuments, 
-  ensureChunkEmbeddings, 
-  retrieveRelevantChunksHybrid, 
-  mergeContiguousChunks,
   getDocumentHash,
   extractTextFromDocument,
-  DocumentChunk
+  DocumentChunk,
+  parseDocumentSections,
+  chunkSections,
+  retrieveRelevantChunksVectorless
 } from '@/lib/retriever';
 import { 
   routeRequest, 
@@ -56,70 +55,54 @@ export async function askQuestion(
 
     const totalDocLength = documentsWithText.reduce((acc, d) => acc + d.content.length, 0);
     
-    // 3. Split documents into chunks (Size = 1500, Overlap = 300) and run Chunking Validation Logs
-    const allChunks = chunkDocuments(documentsWithText, 1500, 300);
+    let selectedChunks: DocumentChunk[] = [];
+    let retrievalResultMethod = 'vectorless-bm25';
+    let retrievalResultScores: { chunkId: string; score: number }[] = [];
     
-    console.log('\n================ CHUNKING VALIDATION ================');
-    console.log(`Number of chunks created: ${allChunks.length}`);
-    console.log(`Chunk sizes: ${allChunks.map(c => c.content.length).join(', ')}`);
-    if (allChunks.length > 0) {
-      console.log(`First chunk preview:\n${allChunks[0].content.substring(0, 400)}...`);
-      console.log(`Last chunk preview:\n${allChunks[allChunks.length - 1].content.substring(0, 400)}...`);
-    }
-    console.log('=====================================================');
-    
-    // 4. Compute SHA-256 hash of documents for embedding cache lookup
-    const docHash = getDocumentHash(documentContent);
-    
-    // 5. Generate or fetch embeddings for all chunks in parallel and run Embeddings Verification Logs
-    const chunksWithEmbeddings = await ensureChunkEmbeddings(allChunks, docHash);
-    
-    const countWithEmbeddings = chunksWithEmbeddings.filter(c => c.embedding && c.embedding.length > 0).length;
-    const dimensions = chunksWithEmbeddings[0]?.embedding?.length || 0;
-    
-    console.log('\n================ EMBEDDINGS VALIDATION ================');
-    console.log(`Number of embeddings generated: ${countWithEmbeddings}/${chunksWithEmbeddings.length}`);
-    console.log(`Embedding vector dimensions: ${dimensions}`);
-    console.log('=======================================================');
-    
-    // 6. Query Rephrasing: use rolling memory to rephrase context-rich follow-up questions
+    // Query Rephrasing: use rolling memory to rephrase context-rich follow-up questions
     const searchQuery = await rephraseQuery(query, history);
     
     const isEnumQuery = isEnumerationQuery(query);
     const isSimple = isSimpleQuery(query);
-
+    
+    console.log('\n[RAG FLOW] Running VECTORLESS Retrieval...');
+    
+    const sections = documentsWithText.flatMap(doc => parseDocumentSections(doc));
+    const childChunks = chunkSections(sections, 1500, 300);
+    
     let topK = 8;
     if (isEnumQuery) {
-      topK = chunksWithEmbeddings.length; // Retrieve all so we can run region-based filtering
+      topK = childChunks.length;
     } else if (isSimple) {
       topK = 4;
     }
-
-    // 7. Hybrid retrieval: cosine similarity search with fallback to BM25 if top score < 0.55
-    const retrievalResult = await retrieveRelevantChunksHybrid(searchQuery, chunksWithEmbeddings, topK, 0.55);
     
-    let selectedChunks = retrievalResult.chunks;
+    const vResult = retrieveRelevantChunksVectorless(searchQuery, childChunks, sections, topK);
+    selectedChunks = vResult.chunks;
+    retrievalResultMethod = vResult.method;
+    retrievalResultScores = vResult.scores;
+    
     if (isEnumQuery) {
-      // Re-map retrievalResult chunks and scores into scored items
-      const scoredItems = retrievalResult.chunks.map(chunk => {
-        const scoreInfo = retrievalResult.scores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
+      const scoredItems = selectedChunks.map(chunk => {
+        const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
         return { chunk, score: scoreInfo ? scoreInfo.score : 0 };
       });
       selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
     }
 
-    // 8. Log Semantic Retrieval Validation details
-    console.log('\n================ SEMANTIC RETRIEVAL VALIDATION ================');
+    // 8. Log Retrieval Validation details
+    console.log('\n================ RETRIEVAL VALIDATION ================');
     console.log(`User Query: ${query}`);
     console.log(`Rephrased Query: ${searchQuery}`);
     console.log(`Enumeration Query: ${isEnumQuery}`);
     console.log(`Simple Query: ${isSimple}`);
+    console.log(`Method: ${retrievalResultMethod || 'vectorless-bm25'}`);
     console.log('Retrieved Chunk IDs:');
     selectedChunks.forEach((c, idx) => {
       console.log(`  - ${c.documentName} (Chunk ${c.chunkIndex})`);
     });
-    console.log('Similarity Scores:');
-    retrievalResult.scores.slice(0, 10).forEach(s => {
+    console.log('Similarity/BM25 Scores:');
+    retrievalResultScores.slice(0, 10).forEach(s => {
       console.log(`  - ${s.chunkId}: ${s.score.toFixed(4)}`);
     });
     console.log('Retrieved Chunk Contents:');
@@ -128,7 +111,7 @@ export async function askQuestion(
     });
     console.log('===============================================================');
 
-    // 9. Classify user intent using the Router Agent (Ollama intent classification)
+    // 9. Classify user intent using the Router Agent (Groq intent classification)
     const routing = await routeRequest(query, history);
     
     // 10. Select target agent
@@ -185,8 +168,7 @@ export async function askQuestion(
       }
     }
 
-    // 12. Merge contiguous/overlapping chunks into continuous blocks
-    const mergedText = mergeContiguousChunks(selectedChunks, documentsWithText);
+    const mergedText = selectedChunks.map(c => c.content).join('\n\n');
 
     // 13. Log the final context block immediately before invoking the agents
     console.log('\n================ FINAL CONTEXT SENT TO AGENT ================');
@@ -228,12 +210,12 @@ export async function askQuestion(
 
     const durationSec = ((Date.now() - startAgent) / 1000).toFixed(1);
 
-    // Log target Ollama metrics
-    console.log('\n================ OLLAMA RESPONSE METRICS ================');
+    // Log target Groq metrics
+    console.log('\n================ GROQ RESPONSE METRICS ================');
     console.log(`Retrieved Chunk Count: ${selectedChunks.length}`);
     console.log(`Context Size: ${mergedText.length} characters`);
     console.log(`Estimated Prompt Size: ${mergedText.length + query.length + 1500} characters`);
-    console.log(`Ollama Response Duration: ${durationSec}s`);
+    console.log(`Groq Response Duration: ${durationSec}s`);
     console.log('==========================================================\n');
 
     // 16. Map retrieved sources metadata with priority (citations -> overlaps -> full window fallback)
@@ -243,7 +225,7 @@ export async function askQuestion(
     const sources = Array.from(
       new Set(referencedChunks.map(c => {
         if (isDebug) {
-          const scoreInfo = retrievalResult.scores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
+          const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
           return scoreInfo 
             ? `${c.documentName} (Chunk ${c.chunkIndex}) [Score: ${scoreInfo.score.toFixed(2)}]`
             : `${c.documentName} (Chunk ${c.chunkIndex})`;
@@ -397,7 +379,7 @@ function isEnumerationQuery(query: string): boolean {
 }
 
 /**
- * Checks if a query is a short, direct factual QA question to optimize context budget and Ollama speed.
+ * Checks if a query is a short, direct factual QA question to optimize context budget and Groq speed.
  */
 function isSimpleQuery(query: string): boolean {
   const wordCount = query.trim().split(/\s+/).length;
@@ -492,22 +474,24 @@ export async function generateNotesAction(documentContent: string) {
       })
     );
 
-    const allChunks = chunkDocuments(documentsWithText, 1500, 300);
-    const docHash = getDocumentHash(documentContent);
-    const chunksWithEmbeddings = await ensureChunkEmbeddings(allChunks, docHash);
-
-    // Virtual query to run hybrid search for notes extraction
+    let selectedChunks: DocumentChunk[] = [];
     const searchQuery = "study notes key concepts facts statistics summary";
-    const retrievalResult = await retrieveRelevantChunksHybrid(searchQuery, chunksWithEmbeddings, chunksWithEmbeddings.length, 0.55);
-
-    const scoredItems = retrievalResult.chunks.map(chunk => {
-      const scoreInfo = retrievalResult.scores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
+    let retrievalResultScores: { chunkId: string; score: number }[] = [];
+    
+    console.log('\n[RAG FLOW] Running VECTORLESS Notes Retrieval...');
+    const sections = documentsWithText.flatMap(doc => parseDocumentSections(doc));
+    const childChunks = chunkSections(sections, 1500, 300);
+    
+    const vResult = retrieveRelevantChunksVectorless(searchQuery, childChunks, sections, childChunks.length);
+    retrievalResultScores = vResult.scores;
+    
+    const scoredItems = vResult.chunks.map(chunk => {
+      const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
       return { chunk, score: scoreInfo ? scoreInfo.score : 0 };
     });
-    // Retrieve top 20 chunks spread across multiple regions to ensure completeness
-    const selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
+    selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
 
-    const mergedText = mergeContiguousChunks(selectedChunks, documentsWithText);
+    const mergedText = selectedChunks.map(c => c.content).join('\n\n');
     const request = {
       query: "Generate study notes based on the uploaded document content.",
       chunks: [{
@@ -524,10 +508,10 @@ export async function generateNotesAction(documentContent: string) {
     const answer = await runNotesAgent(request);
     const durationSec = ((Date.now() - startAgent) / 1000).toFixed(1);
 
-    console.log('\n================ OLLAMA RESPONSE METRICS (NOTES AGENT) ================');
+    console.log('\n================ GROQ RESPONSE METRICS (NOTES AGENT) ================');
     console.log(`Retrieved Chunk Count: ${selectedChunks.length}`);
     console.log(`Context Size: ${mergedText.length} characters`);
-    console.log(`Ollama Response Duration: ${durationSec}s`);
+    console.log(`Groq Response Duration: ${durationSec}s`);
     console.log('========================================================================\n');
 
     const referencedChunks = findReferencedChunks(answer, selectedChunks);
@@ -535,7 +519,7 @@ export async function generateNotesAction(documentContent: string) {
     const sources = Array.from(
       new Set(referencedChunks.map(c => {
         if (isDebug) {
-          const scoreInfo = retrievalResult.scores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
+          const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
           return scoreInfo 
             ? `${c.documentName} (Chunk ${c.chunkIndex}) [Score: ${scoreInfo.score.toFixed(2)}]`
             : `${c.documentName} (Chunk ${c.chunkIndex})`;
@@ -557,6 +541,22 @@ export async function generateNotesAction(documentContent: string) {
       sources: [],
       agent: "System"
     };
+  }
+}
+
+export async function extractDocumentsAction(
+  docs: { name: string; content: string }[]
+): Promise<{ name: string; text: string }[]> {
+  try {
+    return Promise.all(
+      docs.map(async (doc) => {
+        const extResult = await extractTextFromDocument(doc.name, doc.content);
+        return { name: doc.name, text: extResult.text };
+      })
+    );
+  } catch (error: any) {
+    console.error('Error in extractDocumentsAction:', error);
+    throw new Error(error.message || 'Failed to extract text from documents.');
   }
 }
 

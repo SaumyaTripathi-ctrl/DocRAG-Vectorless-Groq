@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: ['169.254.228.201:9002', '169.254.228.201', 'localhost:9002', '127.0.0.1:9002'],
+      bodySizeLimit: '10mb',
     },
   },
   images: {

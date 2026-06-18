@@ -1,4 +1,4 @@
-import { generateResponse } from './ollama';
+import { generateResponse } from './groq';
 import { DocumentChunk } from './retriever';
 
 export interface ChatExchange {
@@ -73,7 +73,7 @@ function parseRouterJson(response: string): RouterResult {
       }
     }
   } catch (err) {
-    console.error('Error parsing Ollama Router response JSON:', err);
+    console.error('Error parsing Groq Router response JSON:', err);
   }
 
   // Fallback to QA if parsing fails
@@ -82,7 +82,7 @@ function parseRouterJson(response: string): RouterResult {
 
 /**
  * 1. Router Agent (Main Agent)
- * Uses Ollama to classify intent and delegates to specialized sub-agents.
+ * Uses Groq to classify intent and delegates to specialized sub-agents.
  */
 export async function routeRequest(query: string, history: ChatExchange[]): Promise<RouterResult> {
   const memoryContext = formatRollingMemory(history, 6);
@@ -121,7 +121,7 @@ Latest User Query: "${query}"`;
     return result;
   } catch (error) {
     console.error('Router Agent failed to classify, defaulting to QA:', error);
-    // Propagate Ollama connection/serve error or fallback to QA
+    // Propagate Groq connection/serve error or fallback to QA
     throw error;
   }
 }

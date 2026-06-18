@@ -8,6 +8,7 @@ import { Benefits } from '@/components/Benefits';
 import { Footer } from '@/components/Footer';
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
+import { extractDocumentsAction } from './actions';
 
 export type WorkspaceDocument = {
   name: string;
@@ -20,15 +21,28 @@ export default function Home() {
   const [uploadedDocs, setUploadedDocs] = useState<WorkspaceDocument[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleUpload = (docs: WorkspaceDocument[]) => {
+  const handleUpload = async (docs: WorkspaceDocument[]) => {
     setIsProcessing(true);
-    // Simulate processing time
-    setTimeout(() => {
-      setUploadedDocs(prev => [...prev, ...docs]);
-      setIsProcessing(false);
+    try {
+      // Send base64 to server to extract plain text
+      const extracted = await extractDocumentsAction(
+        docs.map(d => ({ name: d.name, content: d.content }))
+      );
+
+      const parsedDocs = docs.map((d, index) => ({
+        ...d,
+        content: extracted[index].text // replace base64 binary content with lightweight plain text
+      }));
+
+      setUploadedDocs(prev => [...prev, ...parsedDocs]);
+      
       // Scroll to chat
       document.getElementById('workspace-chat')?.scrollIntoView({ behavior: 'smooth' });
-    }, 1500);
+    } catch (err) {
+      console.error("Text extraction failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleResetWorkspace = () => {
