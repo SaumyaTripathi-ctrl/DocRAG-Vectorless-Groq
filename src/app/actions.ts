@@ -37,12 +37,9 @@ export async function askQuestion(
         const fileType = doc.name.split('.').pop() || 'Unknown';
         
         console.log('\n================ DOCUMENT EXTRACTION AUDIT ================');
-        console.log(`File Name: ${doc.name}`);
-        console.log(`File Type: ${fileType}`);
+        console.log(`Document Name: ${doc.name}`);
+        console.log(`Document Type: ${fileType}`);
         console.log(`Extracted Text Length: ${extResult.text.length}`);
-        if (extResult.pageCount !== undefined) {
-          console.log(`Page Count (PDF only): ${extResult.pageCount}`);
-        }
         console.log(`First 1000 Characters:\n${extResult.text.substring(0, 1000)}`);
         
         if (extResult.text.length < 100) {
@@ -77,6 +74,30 @@ export async function askQuestion(
       }
     }
     const childChunks = chunkSections(sections, pageMaps, 1500, 300);
+
+    // Dedicated runtime verification logs for PDF uploads
+    for (const doc of documentsWithText) {
+      const fileType = doc.name.split('.').pop() || 'Unknown';
+      if (fileType.toLowerCase() === 'pdf') {
+        const docSections = sections.filter(s => s.documentName === doc.name);
+        const docChunks = childChunks.filter(c => c.documentName === doc.name);
+        console.log('\n================ RUNTIME VERIFICATION LOG (PDF UPLOAD) ================');
+        console.log(`Document Name: ${doc.name}`);
+        console.log(`Document Type: ${fileType}`);
+        console.log(`Extracted Text Length: ${doc.content.length}`);
+        console.log(`First 500 Characters:\n${doc.content.substring(0, 500)}`);
+        console.log(`Number of Sections: ${docSections.length}`);
+        console.log(`Number of Chunks: ${docChunks.length}`);
+        console.log(`Number of Indexed BM25 Entries: ${docChunks.length}`);
+        console.log('========================================================================\n');
+      }
+    }
+
+    console.log('\n================ CHUNKING & BM25 INDEX AUDIT ================');
+    console.log(`Number of Sections: ${sections.length}`);
+    console.log(`Number of Chunks: ${childChunks.length}`);
+    console.log(`Number of Indexed BM25 Entries: ${childChunks.length}`);
+    console.log('=============================================================\n');
     
     let topK = 12;
     if (isEnumQuery) {

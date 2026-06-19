@@ -21,6 +21,8 @@ export interface ExtractedDocument {
   text: string;
   pageCount?: number;
   pageMap?: { pageNum: number; startChar: number; endChar: number }[];
+  error?: string;
+  stack?: string;
 }
 
 export interface ParentSection {
@@ -75,6 +77,20 @@ export function getPageNumbersForRange(
  * Handles PDF, DOCX, and TXT files.
  */
 export async function extractTextFromDocument(docName: string, content: string): Promise<ExtractedDocument> {
+  const fileType = docName.split('.').pop()?.toLowerCase() || 'unknown';
+  const result = await _extractTextFromDocument(docName, content);
+  
+  console.log('\n================ extractTextFromDocument() DIAGNOSTIC LOG ================');
+  console.log(`Document Name: ${docName}`);
+  console.log(`File Type: ${fileType}`);
+  console.log(`Extracted Text Length: ${result.text.length}`);
+  console.log(`First 1000 Characters:\n${result.text.substring(0, 1000)}`);
+  console.log('=========================================================================\n');
+  
+  return result;
+}
+
+async function _extractTextFromDocument(docName: string, content: string): Promise<ExtractedDocument> {
   if (content.startsWith('data:')) {
     const commaIndex = content.indexOf(',');
     if (commaIndex !== -1) {
@@ -100,85 +116,56 @@ export async function extractTextFromDocument(docName: string, content: string):
         }
       }
 
-      // 2. PDF Extraction using pdf-parse with custom page render tagging
+      // 2. PDF Extraction using pdf-parse (Mehmet Kozan's modern package API)
       if (ext === 'pdf' || mimeType.includes('pdf')) {
         try {
-          const pdfParse = require('pdf-parse');
-          let pageCounter = 0;
-          const options = {
-            pagerender: (pageData: any) => {
-              pageCounter++;
-              const currentPage = pageCounter;
-              return pageData.getTextContent({
-                normalizeWhitespace: true,
-                disableCombineTextItems: false
-              }).then((textContent: any) => {
-                let lastY, text = '';
-                for (const item of textContent.items) {
-                  if (lastY === item.transform[5] || !lastY) {
-                    text += item.str;
-                  } else {
-                    text += '\n' + item.str;
-                  }
-                  lastY = item.transform[5];
-                }
-                return `\n--- PAGE_START_${currentPage} ---\n${text}\n--- PAGE_END_${currentPage} ---\n`;
-              });
+          if (!(globalThis as any).pdfjsWorker) {
+            try {
+              (globalThis as any).pdfjsWorker = await eval('import("pdfjs-dist/legacy/build/pdf.worker.mjs")');
+            } catch (workerErr) {
+              console.error('[ERROR] Failed to pre-load pdfjsWorker globally:', workerErr);
             }
-          };
-
-          const data = await pdfParse(buffer, options);
-          const rawText = data.text || '';
-          
-          const pageMarkerRegex = /--- PAGE_START_(\d+) ---([\s\S]*?)--- PAGE_END_\1 ---/g;
-          const matches: { pageNum: number; text: string }[] = [];
-          let match;
-          
-          pageMarkerRegex.lastIndex = 0;
-          while ((match = pageMarkerRegex.exec(rawText)) !== null) {
-            matches.push({
-              pageNum: parseInt(match[1], 10),
-              text: match[2]
-            });
           }
+          if (!(globalThis as any).DOMMatrix) {
+            try {
+              const canvas = require('@napi-rs/canvas');
+              (globalThis as any).DOMMatrix = canvas.DOMMatrix;
+              (globalThis as any).DOMPoint = canvas.DOMPoint;
+              (globalThis as any).DOMRect = canvas.DOMRect;
+              (globalThis as any).ImageData = canvas.ImageData;
+              (globalThis as any).Image = canvas.Image;
+            } catch (canvasErr) {
+              console.error('[WARN] Failed to polyfill canvas globals:', canvasErr);
+            }
+          }
+          const { PDFParse } = require('pdf-parse');
+          const parser = new PDFParse({ data: buffer });
+          const result = await parser.getText();
           
-          matches.sort((a, b) => a.pageNum - b.pageNum);
+          const cleanText = result.text || '';
+          const pageMap: { pageNum: number; startChar: number; endChar: number }[] = [];
           
           let currentPos = 0;
-          const pageMap: { pageNum: number; startChar: number; endChar: number }[] = [];
-          let cleanText = '';
-          
-          for (const p of matches) {
-            const pageText = p.text;
+          for (const page of result.pages) {
+            const pageText = page.text;
             const start = currentPos;
             const end = currentPos + pageText.length;
             pageMap.push({
-              pageNum: p.pageNum,
+              pageNum: page.num,
               startChar: start,
               endChar: end
             });
-            cleanText += pageText;
-            currentPos = end;
-          }
-          
-          // Fallback if no markers parsed
-          if (cleanText.length === 0) {
-            cleanText = rawText;
-            pageMap.push({
-              pageNum: 1,
-              startChar: 0,
-              endChar: rawText.length
-            });
+            currentPos = end + 2; // +2 for the '\n\n' page joiner
           }
 
           return {
             text: cleanText,
-            pageCount: data.numpages || 0,
+            pageCount: result.total || 0,
             pageMap: pageMap
           };
-        } catch (err) {
+        } catch (err: any) {
           console.error(`[ERROR] pdf-parse extraction failed for ${docName}:`, err);
-          return { text: '' };
+          return { text: '', error: err.message || String(err), stack: err.stack };
         }
       }
 
