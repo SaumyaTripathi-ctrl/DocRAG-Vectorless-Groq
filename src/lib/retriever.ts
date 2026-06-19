@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+// @ts-expect-error - no declaration file for internal worker path
+import * as pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 
 export interface Document {
   name: string;
@@ -116,37 +119,86 @@ async function _extractTextFromDocument(docName: string, content: string): Promi
         }
       }
 
-      // 2. PDF Extraction using pdf-parse (Mehmet Kozan's modern package API)
+      // 2. PDF Extraction using pdfjs-dist directly (avoiding native @napi-rs/canvas)
       if (ext === 'pdf' || mimeType.includes('pdf')) {
         try {
           if (!(globalThis as any).pdfjsWorker) {
-            try {
-              (globalThis as any).pdfjsWorker = await eval('import("pdfjs-dist/legacy/build/pdf.worker.mjs")');
-            } catch (workerErr) {
-              console.error('[ERROR] Failed to pre-load pdfjsWorker globally:', workerErr);
-            }
+            (globalThis as any).pdfjsWorker = pdfjsWorker;
           }
-          if (!(globalThis as any).DOMMatrix) {
-            try {
-              const canvas = require('@napi-rs/canvas');
-              (globalThis as any).DOMMatrix = canvas.DOMMatrix;
-              (globalThis as any).DOMPoint = canvas.DOMPoint;
-              (globalThis as any).DOMRect = canvas.DOMRect;
-              (globalThis as any).ImageData = canvas.ImageData;
-              (globalThis as any).Image = canvas.Image;
-            } catch (canvasErr) {
-              console.error('[WARN] Failed to polyfill canvas globals:', canvasErr);
-            }
-          }
-          const { PDFParse } = require('pdf-parse');
-          const parser = new PDFParse({ data: buffer });
-          const result = await parser.getText();
+
+          const loadingTask = pdfjs.getDocument({
+            data: new Uint8Array(buffer),
+            verbosity: 0
+          });
+          const doc = await loadingTask.promise;
+          const total = doc.numPages;
           
-          const cleanText = result.text || '';
+          const pages: { text: string; num: number }[] = [];
+          for (let i = 1; i <= total; i++) {
+            const page = await doc.getPage(i);
+            
+            // Extract text with exact logic replicating pdf-parse to preserve spacing/newlines
+            const viewport = page.getViewport({ scale: 1 });
+            const textContent = await page.getTextContent();
+            const strBuf: string[] = [];
+            let lastX: number | undefined;
+            let lastY: number | undefined;
+            let lineHeight = 0;
+
+            const lineThreshold = 4.6;
+            const cellThreshold = 7;
+            const cellSeparator = '\t';
+            const lineEnforce = true;
+
+            for (const item of textContent.items) {
+              if (!('str' in item)) continue;
+              const tm = item.transform;
+              const [x, y] = viewport.convertToViewportPoint(tm[4], tm[5]);
+
+              if (lineEnforce) {
+                if (lastY !== undefined && Math.abs(lastY - y) > lineThreshold) {
+                  const lastItem = strBuf.length ? strBuf[strBuf.length - 1] : undefined;
+                  const isCurrentItemHasNewLine = item.str.startsWith('\n') || (item.str.trim() === '' && item.hasEOL);
+                  if (lastItem?.endsWith('\n') === false && !isCurrentItemHasNewLine) {
+                    const ydiff = Math.abs(lastY - y);
+                    if (ydiff - 1 > lineHeight) {
+                      strBuf.push('\n');
+                      lineHeight = 0;
+                    }
+                  }
+                }
+              }
+
+              if (cellSeparator) {
+                if (lastY !== undefined && Math.abs(lastY - y) < lineThreshold) {
+                  if (lastX !== undefined && Math.abs(lastX - x) > cellThreshold) {
+                    item.str = `${cellSeparator}${item.str}`;
+                  }
+                }
+              }
+
+              strBuf.push(item.str);
+              lastX = x + item.width;
+              lastY = y;
+              lineHeight = Math.max(lineHeight, item.height);
+              
+              if (item.hasEOL) {
+                strBuf.push('\n');
+              }
+              if (item.hasEOL || item.str.endsWith('\n')) {
+                lineHeight = 0;
+              }
+            }
+            
+            pages.push({ text: strBuf.join(''), num: i });
+          }
+          
+          let cleanText = '';
           const pageMap: { pageNum: number; startChar: number; endChar: number }[] = [];
-          
           let currentPos = 0;
-          for (const page of result.pages) {
+          const pageJoiner = '\n-- page_number of total_number --';
+          
+          for (const page of pages) {
             const pageText = page.text;
             const start = currentPos;
             const end = currentPos + pageText.length;
@@ -155,16 +207,21 @@ async function _extractTextFromDocument(docName: string, content: string): Promi
               startChar: start,
               endChar: end
             });
-            currentPos = end + 2; // +2 for the '\n\n' page joiner
+            
+            let pageNumber = pageJoiner.replace('page_number', `${page.num}`);
+            pageNumber = pageNumber.replace('total_number', `${total}`);
+            cleanText += `${pageText}\n${pageNumber}\n\n`;
+            
+            currentPos = end + 2; // +2 for the '\n\n' page joiner (matches pdf-parse mapping formula exactly)
           }
 
           return {
             text: cleanText,
-            pageCount: result.total || 0,
+            pageCount: total,
             pageMap: pageMap
           };
         } catch (err: any) {
-          console.error(`[ERROR] pdf-parse extraction failed for ${docName}:`, err);
+          console.error(`[ERROR] pdfjs-dist extraction failed for ${docName}:`, err);
           return { text: '', error: err.message || String(err), stack: err.stack };
         }
       }

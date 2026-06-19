@@ -627,9 +627,27 @@ export async function extractDocumentsAction(
   docs: { name: string; content: string }[]
 ): Promise<{ name: string; text: string }[]> {
   try {
+    console.log(`[ENV CHECK] GROQ_API_KEY is available: ${process.env.GROQ_API_KEY ? 'Yes' : 'No'}`);
+    
     return Promise.all(
       docs.map(async (doc) => {
         const extResult = await extractTextFromDocument(doc.name, doc.content);
+        const fileType = doc.name.split('.').pop() || 'Unknown';
+        
+        // Compute sections and chunks to log production metrics
+        const parsedDoc = { name: doc.name, content: extResult.text, pageMap: extResult.pageMap };
+        const sections = parseDocumentSections(parsedDoc);
+        const pageMaps = { [doc.name]: extResult.pageMap || [] };
+        const childChunks = chunkSections(sections, pageMaps, 1500, 300);
+
+        console.log('\n================ PRODUCTION UPLOAD AUDIT LOG ================');
+        console.log(`Document Name: ${doc.name}`);
+        console.log(`File Type: ${fileType}`);
+        console.log(`Extracted Text Length: ${extResult.text.length}`);
+        console.log(`Number of Sections: ${sections.length}`);
+        console.log(`Number of Chunks: ${childChunks.length}`);
+        console.log('=============================================================\n');
+        
         return { name: doc.name, text: extResult.text };
       })
     );
