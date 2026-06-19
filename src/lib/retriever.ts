@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import './polyfill';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 // @ts-expect-error - no declaration file for internal worker path
 import * as pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
