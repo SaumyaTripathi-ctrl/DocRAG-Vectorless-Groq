@@ -34,7 +34,7 @@ export default function Home() {
         content: extracted[index].text // replace base64 binary content with lightweight plain text
       }));
 
-      setUploadedDocs(prev => [...prev, ...parsedDocs]);
+      setUploadedDocs(parsedDocs);
       
       // Scroll to chat
       document.getElementById('workspace-chat')?.scrollIntoView({ behavior: 'smooth' });

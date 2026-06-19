@@ -132,6 +132,9 @@ Latest User Query: "${query}"`;
  */
 export async function runSummaryAgent(request: AgentRequest): Promise<string> {
   const context = formatChunks(request.chunks);
+  if (context === 'No relevant context retrieved.' || !context.trim() || context.includes('No relevant context retrieved.')) {
+    return "I could not find this information in the uploaded documents.";
+  }
   const memory = formatRollingMemory(request.history, 6);
 
   const prompt = `You are a conversational Document Summary Agent. Your goal is to summarize the retrieved document context.
@@ -192,6 +195,9 @@ User Query: ${request.query}`;
  */
 export async function runCompareAgent(request: AgentRequest): Promise<string> {
   const context = formatChunks(request.chunks);
+  if (context === 'No relevant context retrieved.' || !context.trim() || context.includes('No relevant context retrieved.')) {
+    return "I could not find this information in the uploaded documents.";
+  }
   const memory = formatRollingMemory(request.history, 6);
 
   const prompt = `You are a conversational Document Compare Agent. Your goal is to compare documents, sections, or details within the retrieved context.
@@ -229,6 +235,9 @@ User Query: ${request.query}`;
  */
 export async function runInsightsAgent(request: AgentRequest): Promise<string> {
   const context = formatChunks(request.chunks);
+  if (context === 'No relevant context retrieved.' || !context.trim() || context.includes('No relevant context retrieved.')) {
+    return "I could not find this information in the uploaded documents.";
+  }
   const memory = formatRollingMemory(request.history, 6);
 
   const prompt = `You are a conversational Document Insights Agent. Your goal is to analyze the retrieved context and extract high-value insights, risks, opportunities, metrics, or recommendations.
@@ -267,6 +276,9 @@ User Query: ${request.query}`;
  */
 export async function runQAAgent(request: AgentRequest): Promise<string> {
   const context = formatChunks(request.chunks);
+  if (context === 'No relevant context retrieved.' || !context.trim() || context.includes('No relevant context retrieved.')) {
+    return "I could not find this information in the uploaded documents.";
+  }
   const memory = formatRollingMemory(request.history, 6);
 
   const prompt = `You are a conversational Document QA Agent. Your goal is to answer the user's query based strictly on the retrieved document context.
@@ -341,6 +353,9 @@ Rephrased Standalone Search Query:`;
  */
 export async function runNotesAgent(request: AgentRequest): Promise<string> {
   const context = formatChunks(request.chunks);
+  if (context === 'No relevant context retrieved.' || !context.trim() || context.includes('No relevant context retrieved.')) {
+    return "I could not generate study notes because the document content is insufficient.";
+  }
   
   const prompt = `You are a conversational Document Notes Agent. Your goal is to analyze the retrieved context and generate concise study notes.
 

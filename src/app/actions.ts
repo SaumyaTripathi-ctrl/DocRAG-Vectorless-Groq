@@ -7,7 +7,8 @@ import {
   DocumentChunk,
   parseDocumentSections,
   chunkSections,
-  retrieveRelevantChunksVectorless
+  retrieveRelevantChunksVectorless,
+  sampleSectionsUniformly
 } from '@/lib/retriever';
 import { 
   routeRequest, 
@@ -49,7 +50,7 @@ export async function askQuestion(
         }
         console.log('===========================================================');
         
-        return { name: doc.name, content: extResult.text };
+        return { name: doc.name, content: extResult.text, pageMap: extResult.pageMap };
       })
     );
 
@@ -68,13 +69,20 @@ export async function askQuestion(
     console.log('\n[RAG FLOW] Running VECTORLESS Retrieval...');
     
     const sections = documentsWithText.flatMap(doc => parseDocumentSections(doc));
-    const childChunks = chunkSections(sections, 1500, 300);
     
-    let topK = 8;
+    const pageMaps: Record<string, { pageNum: number; startChar: number; endChar: number }[]> = {};
+    for (const doc of documentsWithText) {
+      if (doc.pageMap) {
+        pageMaps[doc.name] = doc.pageMap;
+      }
+    }
+    const childChunks = chunkSections(sections, pageMaps, 1500, 300);
+    
+    let topK = 12;
     if (isEnumQuery) {
-      topK = childChunks.length;
+      topK = Math.max(20, childChunks.length);
     } else if (isSimple) {
-      topK = 4;
+      topK = 12;
     }
     
     const vResult = retrieveRelevantChunksVectorless(searchQuery, childChunks, sections, topK);
@@ -82,39 +90,13 @@ export async function askQuestion(
     retrievalResultMethod = vResult.method;
     retrievalResultScores = vResult.scores;
     
-    if (isEnumQuery) {
-      const scoredItems = selectedChunks.map(chunk => {
-        const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
-        return { chunk, score: scoreInfo ? scoreInfo.score : 0 };
-      });
-      selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
-    }
+    const maxScore = retrievalResultScores.length > 0
+      ? Math.max(...retrievalResultScores.map(s => s.score))
+      : 0;
 
-    // 8. Log Retrieval Validation details
-    console.log('\n================ RETRIEVAL VALIDATION ================');
-    console.log(`User Query: ${query}`);
-    console.log(`Rephrased Query: ${searchQuery}`);
-    console.log(`Enumeration Query: ${isEnumQuery}`);
-    console.log(`Simple Query: ${isSimple}`);
-    console.log(`Method: ${retrievalResultMethod || 'vectorless-bm25'}`);
-    console.log('Retrieved Chunk IDs:');
-    selectedChunks.forEach((c, idx) => {
-      console.log(`  - ${c.documentName} (Chunk ${c.chunkIndex})`);
-    });
-    console.log('Similarity/BM25 Scores:');
-    retrievalResultScores.slice(0, 10).forEach(s => {
-      console.log(`  - ${s.chunkId}: ${s.score.toFixed(4)}`);
-    });
-    console.log('Retrieved Chunk Contents:');
-    selectedChunks.forEach((c, idx) => {
-      console.log(`  --- Chunk ${idx + 1} (${c.documentName} (Chunk ${c.chunkIndex})) ---\n${c.content.substring(0, 500)}...\n`);
-    });
-    console.log('===============================================================');
-
-    // 9. Classify user intent using the Router Agent (Groq intent classification)
-    const routing = await routeRequest(query, history);
+    // Intents classification helper for fallback response
+    const routing = await routeRequest(query, history).catch(() => ({ intent: 'qa' }));
     
-    // 10. Select target agent
     let agentName = '';
     switch (routing.intent) {
       case 'summary':
@@ -131,6 +113,57 @@ export async function askQuestion(
         agentName = 'QA Agent';
         break;
     }
+
+    if (selectedChunks.length === 0 || maxScore === 0) {
+      console.log('\n================ DETAILED RETRIEVAL LOGGING ================');
+      console.log(`Query: ${query}`);
+      console.log('Retrieved Chunks: None');
+      console.log('============================================================\n');
+      
+      console.log('\n================ RETRIEVAL EVALUATION ================');
+      console.log(`Question: ${query}`);
+      console.log(`Retrieved Section(s): None`);
+      console.log(`Agent Used: ${agentName}`);
+      console.log(`Answer Length: 61 characters`);
+      console.log(`Retrieved Context Length: 0 characters`);
+      console.log('======================================================\n');
+
+      return {
+        answer: "I could not find this information in the uploaded documents.",
+        sources: [],
+        agent: agentName
+      };
+    }
+
+    if (isEnumQuery) {
+      const scoredItems = selectedChunks.map(chunk => {
+        const scoreInfo = retrievalResultScores.find(s => 
+          s.chunkId === `${chunk.documentName} (Section: ${chunk.sectionName})` ||
+          s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`
+        );
+        return { chunk, score: scoreInfo ? scoreInfo.score : 0 };
+      });
+      selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
+    }
+
+    // 8. Log Retrieval Validation details
+    console.log('\n================ DETAILED RETRIEVAL LOGGING ================');
+    console.log(`Query: ${query}`);
+    console.log('Retrieved Chunks:');
+    selectedChunks.forEach((c, idx) => {
+      const scoreInfo = retrievalResultScores.find(s => 
+        s.chunkId === `${c.documentName} (Section: ${c.sectionName})` ||
+        s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`
+      );
+      const score = scoreInfo ? scoreInfo.score : 0;
+      console.log(`  Chunk ${idx + 1}:`);
+      console.log(`    BM25 score: ${score.toFixed(4)}`);
+      console.log(`    Page number: ${c.pageNumber || 'N/A'}`);
+      console.log(`    Section title: ${c.sectionName || 'N/A'}`);
+      console.log(`    First 300 characters: ${c.content.replace(/\[SOURCE\][\s\S]*?\n\n/, '').substring(0, 300).replace(/\n/g, ' ')}...`);
+      console.log('  --------------------------------------------');
+    });
+    console.log('===============================================================');
 
     // 11. Summary Agent Context Budget:
     // If total retrieved chunks <= 4, use all chunks.
@@ -225,15 +258,28 @@ export async function askQuestion(
     const sources = Array.from(
       new Set(referencedChunks.map(c => {
         if (isDebug) {
-          const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
-          return scoreInfo 
-            ? `${c.documentName} (Chunk ${c.chunkIndex}) [Score: ${scoreInfo.score.toFixed(2)}]`
-            : `${c.documentName} (Chunk ${c.chunkIndex})`;
+          const scoreInfo = retrievalResultScores.find(s => 
+            s.chunkId === `${c.documentName} (Section: ${c.sectionName})` ||
+            s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`
+          );
+          const scoreStr = scoreInfo ? ` [Score: ${scoreInfo.score.toFixed(2)}]` : '';
+          return `${c.documentName} (Section: ${c.sectionName || 'N/A'})${scoreStr}`;
         } else {
           return c.documentName;
         }
       }))
     );
+
+    console.log('\n================ RETRIEVAL EVALUATION ================');
+    console.log(`Question: ${query}`);
+    console.log(`Retrieved Section(s):`);
+    selectedChunks.forEach(c => {
+      console.log(`  - Doc: ${c.documentName}, Section: ${c.sectionName || 'N/A'}, Page: ${c.pageNumber || 'N/A'}`);
+    });
+    console.log(`Agent Used: ${agentName}`);
+    console.log(`Answer Length: ${answer.length} characters`);
+    console.log(`Retrieved Context Length: ${mergedText.length} characters`);
+    console.log('======================================================\n');
 
     return {
       answer,
@@ -470,26 +516,41 @@ export async function generateNotesAction(documentContent: string) {
     const documentsWithText = await Promise.all(
       rawDocuments.map(async (doc) => {
         const extResult = await extractTextFromDocument(doc.name, doc.content);
-        return { name: doc.name, content: extResult.text };
+        return { name: doc.name, content: extResult.text, pageMap: extResult.pageMap };
       })
     );
 
     let selectedChunks: DocumentChunk[] = [];
-    const searchQuery = "study notes key concepts facts statistics summary";
-    let retrievalResultScores: { chunkId: string; score: number }[] = [];
     
-    console.log('\n[RAG FLOW] Running VECTORLESS Notes Retrieval...');
+    console.log('\n[RAG FLOW] Running Uniform Notes Retrieval...');
     const sections = documentsWithText.flatMap(doc => parseDocumentSections(doc));
-    const childChunks = chunkSections(sections, 1500, 300);
     
-    const vResult = retrieveRelevantChunksVectorless(searchQuery, childChunks, sections, childChunks.length);
-    retrievalResultScores = vResult.scores;
+    const pageMaps: Record<string, { pageNum: number; startChar: number; endChar: number }[]> = {};
+    for (const doc of documentsWithText) {
+      if (doc.pageMap) {
+        pageMaps[doc.name] = doc.pageMap;
+      }
+    }
+    const childChunks = chunkSections(sections, pageMaps, 1500, 300);
     
-    const scoredItems = vResult.chunks.map(chunk => {
-      const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${chunk.documentName} (Chunk ${chunk.chunkIndex})`);
-      return { chunk, score: scoreInfo ? scoreInfo.score : 0 };
+    // Sample parent sections uniformly (beginning, middle, end)
+    const sampledSections = sampleSectionsUniformly(sections, 12);
+    
+    selectedChunks = sampledSections.map((sec) => {
+      const cc = childChunks.find(c => c.parentSectionId === sec.id);
+      const pageNumStr = sec.pageNumbers ? sec.pageNumbers.join(', ') : (cc?.pageNumber || 1).toString();
+      const enrichedContent = `[SOURCE]\nDocument Name: ${sec.documentName}\nSection Name: ${sec.sectionName}\nPage Number(s): ${pageNumStr}\n\n${sec.content}`;
+      
+      return {
+        documentName: sec.documentName,
+        chunkIndex: cc ? cc.chunkIndex : 1,
+        content: enrichedContent,
+        startChar: sec.startChar,
+        endChar: sec.endChar,
+        pageNumber: cc ? cc.pageNumber : 1,
+        sectionName: sec.sectionName
+      };
     });
-    selectedChunks = selectChunksFromMultipleRegions(scoredItems, 20);
 
     const mergedText = selectedChunks.map(c => c.content).join('\n\n');
     const request = {
@@ -519,10 +580,7 @@ export async function generateNotesAction(documentContent: string) {
     const sources = Array.from(
       new Set(referencedChunks.map(c => {
         if (isDebug) {
-          const scoreInfo = retrievalResultScores.find(s => s.chunkId === `${c.documentName} (Chunk ${c.chunkIndex})`);
-          return scoreInfo 
-            ? `${c.documentName} (Chunk ${c.chunkIndex}) [Score: ${scoreInfo.score.toFixed(2)}]`
-            : `${c.documentName} (Chunk ${c.chunkIndex})`;
+          return `${c.documentName} (Section: ${c.sectionName || 'N/A'})`;
         } else {
           return c.documentName;
         }

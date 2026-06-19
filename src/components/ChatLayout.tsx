@@ -298,6 +298,17 @@ export function ChatLayout({ documents, onResetWorkspace }: ChatLayoutProps) {
   const [isGeneratingTools, setIsGeneratingTools] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const prevDocsRef = useRef<WorkspaceDocument[]>(documents);
+  useEffect(() => {
+    const prevNames = prevDocsRef.current.map(d => d.name).join(',');
+    const currentNames = documents.map(d => d.name).join(',');
+    if (prevNames !== currentNames) {
+      setMessages([]);
+      setInputValue("");
+    }
+    prevDocsRef.current = documents;
+  }, [documents]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({

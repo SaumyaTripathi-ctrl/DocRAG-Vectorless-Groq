@@ -3,6 +3,7 @@ import crypto from 'crypto';
 export interface Document {
   name: string;
   content: string;
+  pageMap?: { pageNum: number; startChar: number; endChar: number }[];
 }
 
 export interface DocumentChunk {
@@ -12,11 +13,14 @@ export interface DocumentChunk {
   startChar: number;  // Start character offset in the original document
   endChar: number;    // End character offset in the original document
   embedding?: number[];
+  pageNumber?: number;
+  sectionName?: string;
 }
 
 export interface ExtractedDocument {
   text: string;
   pageCount?: number;
+  pageMap?: { pageNum: number; startChar: number; endChar: number }[];
 }
 
 export interface ParentSection {
@@ -26,6 +30,7 @@ export interface ParentSection {
   content: string;
   startChar: number;
   endChar: number;
+  pageNumbers?: number[];
 }
 
 export interface ChildChunk {
@@ -36,12 +41,33 @@ export interface ChildChunk {
   parentSectionId: string;
   startChar: number;
   endChar: number;
+  pageNumber?: number;
 }
 
 export interface VectorlessRetrievalResult {
   chunks: DocumentChunk[];
   scores: { chunkId: string; score: number }[];
   method: 'vectorless-bm25';
+}
+
+/**
+ * Helper to calculate page numbers for a given character offset range using the pageMap.
+ */
+export function getPageNumbersForRange(
+  startChar: number,
+  endChar: number,
+  pageMap?: { pageNum: number; startChar: number; endChar: number }[]
+): number[] {
+  if (!pageMap || pageMap.length === 0) return [1];
+  const pages: number[] = [];
+  for (const page of pageMap) {
+    const overlapStart = Math.max(startChar, page.startChar);
+    const overlapEnd = Math.min(endChar, page.endChar);
+    if (overlapStart < overlapEnd) {
+      pages.push(page.pageNum);
+    }
+  }
+  return pages.length > 0 ? pages : [1];
 }
 
 /**
@@ -63,21 +89,92 @@ export async function extractTextFromDocument(docName: string, content: string):
         try {
           const mammoth = require('mammoth');
           const result = await mammoth.extractRawText({ buffer });
-          return { text: result.value || '' };
+          const text = result.value || '';
+          return {
+            text,
+            pageMap: [{ pageNum: 1, startChar: 0, endChar: text.length }]
+          };
         } catch (err) {
           console.error(`[ERROR] mammoth extraction failed for ${docName}:`, err);
           return { text: '' };
         }
       }
 
-      // 2. PDF Extraction using pdf-parse
+      // 2. PDF Extraction using pdf-parse with custom page render tagging
       if (ext === 'pdf' || mimeType.includes('pdf')) {
         try {
           const pdfParse = require('pdf-parse');
-          const data = await pdfParse(buffer);
+          let pageCounter = 0;
+          const options = {
+            pagerender: (pageData: any) => {
+              pageCounter++;
+              const currentPage = pageCounter;
+              return pageData.getTextContent({
+                normalizeWhitespace: true,
+                disableCombineTextItems: false
+              }).then((textContent: any) => {
+                let lastY, text = '';
+                for (const item of textContent.items) {
+                  if (lastY === item.transform[5] || !lastY) {
+                    text += item.str;
+                  } else {
+                    text += '\n' + item.str;
+                  }
+                  lastY = item.transform[5];
+                }
+                return `\n--- PAGE_START_${currentPage} ---\n${text}\n--- PAGE_END_${currentPage} ---\n`;
+              });
+            }
+          };
+
+          const data = await pdfParse(buffer, options);
+          const rawText = data.text || '';
+          
+          const pageMarkerRegex = /--- PAGE_START_(\d+) ---([\s\S]*?)--- PAGE_END_\1 ---/g;
+          const matches: { pageNum: number; text: string }[] = [];
+          let match;
+          
+          pageMarkerRegex.lastIndex = 0;
+          while ((match = pageMarkerRegex.exec(rawText)) !== null) {
+            matches.push({
+              pageNum: parseInt(match[1], 10),
+              text: match[2]
+            });
+          }
+          
+          matches.sort((a, b) => a.pageNum - b.pageNum);
+          
+          let currentPos = 0;
+          const pageMap: { pageNum: number; startChar: number; endChar: number }[] = [];
+          let cleanText = '';
+          
+          for (const p of matches) {
+            const pageText = p.text;
+            const start = currentPos;
+            const end = currentPos + pageText.length;
+            pageMap.push({
+              pageNum: p.pageNum,
+              startChar: start,
+              endChar: end
+            });
+            cleanText += pageText;
+            currentPos = end;
+          }
+          
+          // Fallback if no markers parsed
+          if (cleanText.length === 0) {
+            cleanText = rawText;
+            pageMap.push({
+              pageNum: 1,
+              startChar: 0,
+              endChar: rawText.length
+            });
+          }
+
           return {
-            text: data.text || '',
-            pageCount: data.numpages || 0
+            text: cleanText,
+            pageCount: data.numpages || 0,
+            pageMap: pageMap
           };
         } catch (err) {
           console.error(`[ERROR] pdf-parse extraction failed for ${docName}:`, err);
@@ -87,18 +184,28 @@ export async function extractTextFromDocument(docName: string, content: string):
 
       // 3. TXT file: decode as UTF-8
       if (ext === 'txt' || mimeType.includes('text/plain') || mimeType.includes('plain')) {
-        return { text: buffer.toString('utf-8') };
+        const text = buffer.toString('utf-8');
+        return {
+          text,
+          pageMap: [{ pageNum: 1, startChar: 0, endChar: text.length }]
+        };
       }
 
       // Fallback: decode as UTF-8
-      return { text: buffer.toString('utf-8') };
+      const text = buffer.toString('utf-8');
+      return {
+        text,
+        pageMap: [{ pageNum: 1, startChar: 0, endChar: text.length }]
+      };
     }
   }
 
   // If already plain text, return as-is
-  return { text: content };
+  return {
+    text: content,
+    pageMap: [{ pageNum: 1, startChar: 0, endChar: content.length }]
+  };
 }
-
 
 /**
  * Computes the SHA-256 hash of a string.
@@ -164,6 +271,7 @@ function countOccurrences(text: string, term: string): number {
 export function parseDocumentSections(doc: Document): ParentSection[] {
   const content = doc.content;
   const sections: ParentSection[] = [];
+  const pageMap = doc.pageMap || [];
   
   // Find heading positions
   const lines = content.split('\n');
@@ -211,7 +319,8 @@ export function parseDocumentSections(doc: Document): ParentSection[] {
         sectionName: `Section ${secIndex}`,
         content: secContent,
         startChar: start,
-        endChar: cutPoint
+        endChar: cutPoint,
+        pageNumbers: getPageNumbersForRange(start, cutPoint, pageMap)
       });
       
       start = cutPoint;
@@ -235,7 +344,8 @@ export function parseDocumentSections(doc: Document): ParentSection[] {
         sectionName: sectionName || `Section ${i + 1}`,
         content: secContent,
         startChar: start,
-        endChar: end
+        endChar: end,
+        pageNumbers: getPageNumbersForRange(start, end, pageMap)
       });
     }
     
@@ -249,7 +359,8 @@ export function parseDocumentSections(doc: Document): ParentSection[] {
           sectionName: 'Introduction',
           content: introContent,
           startChar: 0,
-          endChar: headingPositions[0].pos
+          endChar: headingPositions[0].pos,
+          pageNumbers: getPageNumbersForRange(0, headingPositions[0].pos, pageMap)
         });
       }
     }
@@ -261,13 +372,21 @@ export function parseDocumentSections(doc: Document): ParentSection[] {
 /**
  * Chunks parsed parent sections into child chunks.
  */
-export function chunkSections(sections: ParentSection[], chunkSize = 1500, overlap = 300): ChildChunk[] {
+export function chunkSections(
+  sections: ParentSection[],
+  pageMaps?: Record<string, { pageNum: number; startChar: number; endChar: number }[]>,
+  chunkSize = 1500,
+  overlap = 300
+): ChildChunk[] {
   const childChunks: ChildChunk[] = [];
   let overallIndex = 1;
   
   for (const sec of sections) {
     const content = sec.content;
+    const pageMap = pageMaps ? pageMaps[sec.documentName] : undefined;
+    
     if (content.length <= chunkSize) {
+      const pageNumbers = getPageNumbersForRange(sec.startChar, sec.endChar, pageMap);
       childChunks.push({
         documentName: sec.documentName,
         sectionName: sec.sectionName,
@@ -275,7 +394,8 @@ export function chunkSections(sections: ParentSection[], chunkSize = 1500, overl
         content: content,
         parentSectionId: sec.id,
         startChar: sec.startChar,
-        endChar: sec.endChar
+        endChar: sec.endChar,
+        pageNumber: pageNumbers[0] || 1
       });
       continue;
     }
@@ -295,14 +415,19 @@ export function chunkSections(sections: ParentSection[], chunkSize = 1500, overl
       }
       
       const chunkLength = chunkText.length;
+      const ccStart = sec.startChar + start;
+      const ccEnd = sec.startChar + start + chunkLength;
+      const pageNumbers = getPageNumbersForRange(ccStart, ccEnd, pageMap);
+      
       childChunks.push({
         documentName: sec.documentName,
         sectionName: sec.sectionName,
         chunkIndex: overallIndex++,
         content: chunkText.trim(),
         parentSectionId: sec.id,
-        startChar: sec.startChar + start,
-        endChar: sec.startChar + start + chunkLength
+        startChar: ccStart,
+        endChar: ccEnd,
+        pageNumber: pageNumbers[0] || 1
       });
       
       start += chunkLength - overlap;
@@ -323,27 +448,30 @@ export function retrieveRelevantChunksVectorless(
   query: string,
   childChunks: ChildChunk[],
   parentSections: ParentSection[],
-  topK = 8
+  topK = 12
 ): VectorlessRetrievalResult {
   const queryTokens = tokenize(query);
   
   if (queryTokens.length === 0 || childChunks.length === 0) {
-    const defaultChunks = childChunks.slice(0, topK).map(cc => {
-      const parent = parentSections.find(p => p.id === cc.parentSectionId);
-      const parentContent = parent ? parent.content : cc.content;
-      const enrichedContent = `[SOURCE]\nDocument Name: ${cc.documentName}\nSection Name: ${cc.sectionName}\nChunk Index: ${cc.chunkIndex}\n\n${parentContent}`;
+    const defaultSections = parentSections.slice(0, topK);
+    const defaultChunks = defaultSections.map((sec, idx) => {
+      const cc = childChunks.find(c => c.parentSectionId === sec.id);
+      const pageNumStr = sec.pageNumbers ? sec.pageNumbers.join(', ') : (cc?.pageNumber || 1).toString();
+      const enrichedContent = `[SOURCE]\nDocument Name: ${sec.documentName}\nSection Name: ${sec.sectionName}\nPage Number(s): ${pageNumStr}\n\n${sec.content}`;
       
       return {
-        documentName: cc.documentName,
-        chunkIndex: cc.chunkIndex,
+        documentName: sec.documentName,
+        chunkIndex: cc ? cc.chunkIndex : 1,
         content: enrichedContent,
-        startChar: cc.startChar,
-        endChar: cc.endChar
+        startChar: sec.startChar,
+        endChar: sec.endChar,
+        pageNumber: cc ? cc.pageNumber : 1,
+        sectionName: sec.sectionName
       };
     });
     return {
       chunks: defaultChunks,
-      scores: defaultChunks.map(c => ({ chunkId: `${c.documentName} (Chunk ${c.chunkIndex})`, score: 0 })),
+      scores: defaultChunks.map(c => ({ chunkId: `${c.documentName} (Section: ${c.sectionName})`, score: 0 })),
       method: 'vectorless-bm25'
     };
   }
@@ -352,7 +480,11 @@ export function retrieveRelevantChunksVectorless(
   for (const token of queryTokens) {
     df[token] = 0;
     for (const chunk of childChunks) {
-      if (chunk.content.toLowerCase().includes(token)) {
+      const inContent = chunk.content.toLowerCase().includes(token);
+      const inHeading = chunk.sectionName.toLowerCase().includes(token);
+      const inDocName = chunk.documentName.toLowerCase().includes(token);
+      const inPage = `page ${chunk.pageNumber}`.includes(token);
+      if (inContent || inHeading || inDocName || inPage) {
         df[token]++;
       }
     }
@@ -369,10 +501,30 @@ export function retrieveRelevantChunksVectorless(
     let score = 0;
 
     for (const token of queryTokens) {
-      const tf = countOccurrences(chunkTextLower, token);
+      let tf = countOccurrences(chunkTextLower, token);
+      
+      const inHeading = chunk.sectionName.toLowerCase().includes(token);
+      const inDocName = chunk.documentName.toLowerCase().includes(token);
+      const inPage = `page ${chunk.pageNumber}`.includes(token);
+      
+      if (inHeading) {
+        tf += 5.0; // Heading match counts as 5 virtual occurrences
+      }
+      if (inDocName) {
+        tf += 2.0; // Document name match
+      }
+      if (inPage) {
+        tf += 1.0; // Page number match
+      }
+
       if (tf > 0) {
         const tfWeight = (tf * 2.2) / (tf + 1.2);
-        score += tfWeight * idf[token];
+        let tokenScore = tfWeight * idf[token];
+        
+        if (inHeading) {
+          tokenScore *= 2.0; // Double token score for heading match
+        }
+        score += tokenScore;
       }
     }
 
@@ -383,29 +535,55 @@ export function retrieveRelevantChunksVectorless(
     .filter(item => item.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  const selected = matched.length > 0 ? matched.slice(0, topK) : scored.sort((a, b) => b.score - a.score).slice(0, topK);
+  // Group child chunks by parentSectionId to prevent duplicate parent sections
+  const parentScores = new Map<string, { maxScore: number; childChunks: ChildChunk[] }>();
+  
+  const itemsToGroup = matched.length > 0 ? matched : scored.sort((a, b) => b.score - a.score);
+  for (const item of itemsToGroup) {
+    const cc = item.chunk;
+    const parentId = cc.parentSectionId;
+    const existing = parentScores.get(parentId);
+    if (existing) {
+      existing.maxScore = Math.max(existing.maxScore, item.score);
+      existing.childChunks.push(cc);
+    } else {
+      parentScores.set(parentId, { maxScore: item.score, childChunks: [cc] });
+    }
+  }
+
+  // Sort parent sections by their max child chunk score descending
+  const sortedParents = Array.from(parentScores.entries())
+    .map(([parentId, data]) => ({ parentId, ...data }))
+    .sort((a, b) => b.maxScore - a.maxScore);
+
+  // Select top K unique parent sections
+  const selectedParents = sortedParents.slice(0, topK);
 
   const enrichedChunks: DocumentChunk[] = [];
   const scoresList: { chunkId: string; score: number }[] = [];
 
-  for (const item of selected) {
-    const cc = item.chunk;
-    const parent = parentSections.find(p => p.id === cc.parentSectionId);
-    const parentContent = parent ? parent.content : cc.content;
+  for (const parentData of selectedParents) {
+    const parent = parentSections.find(p => p.id === parentData.parentId);
+    if (!parent) continue;
+
+    const cc = parentData.childChunks[0];
+    const pageNumStr = parent.pageNumbers ? parent.pageNumbers.join(', ') : (cc?.pageNumber || 1).toString();
     
-    const enrichedContent = `[SOURCE]\nDocument Name: ${cc.documentName}\nSection Name: ${cc.sectionName}\nChunk Index: ${cc.chunkIndex}\n\n${parentContent}`;
+    const enrichedContent = `[SOURCE]\nDocument Name: ${parent.documentName}\nSection Name: ${parent.sectionName}\nPage Number(s): ${pageNumStr}\n\n${parent.content}`;
     
     enrichedChunks.push({
-      documentName: cc.documentName,
-      chunkIndex: cc.chunkIndex,
+      documentName: parent.documentName,
+      chunkIndex: cc ? cc.chunkIndex : 1,
       content: enrichedContent,
-      startChar: cc.startChar,
-      endChar: cc.endChar
+      startChar: parent.startChar,
+      endChar: parent.endChar,
+      pageNumber: cc ? cc.pageNumber : 1,
+      sectionName: parent.sectionName
     });
-    
+
     scoresList.push({
-      chunkId: `${cc.documentName} (Chunk ${cc.chunkIndex})`,
-      score: item.score
+      chunkId: `${parent.documentName} (Section: ${parent.sectionName})`,
+      score: parentData.maxScore
     });
   }
 
@@ -414,4 +592,24 @@ export function retrieveRelevantChunksVectorless(
     scores: scoresList,
     method: 'vectorless-bm25'
   };
+}
+
+/**
+ * Samples parent sections uniformly to cover the beginning, middle, and end.
+ */
+export function sampleSectionsUniformly(
+  sections: ParentSection[],
+  maxSections = 12
+): ParentSection[] {
+  const totalSections = sections.length;
+  if (totalSections <= maxSections) {
+    return sections;
+  }
+  const sampled: ParentSection[] = [];
+  const step = totalSections / maxSections;
+  for (let i = 0; i < maxSections; i++) {
+    const index = Math.min(Math.floor(i * step), totalSections - 1);
+    sampled.push(sections[index]);
+  }
+  return sampled;
 }
